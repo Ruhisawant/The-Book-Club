@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "933149243820",
+    "project_id": "the-book-club-19c4d",
+    "storage_bucket": "the-book-club-19c4d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:933149243820:android:75d3d80c9258929c9c6209",
+        "android_client_info": {
+          "package_name": "com.example.book_rec_review_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChDsxvwYqZKilf-BT0etHPqfMX4w01MQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
