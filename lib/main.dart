@@ -1,49 +1,40 @@
 import 'package:flutter/material.dart';
+import 'login_screen.dart';
+import 'home_screen.dart';
+import 'book_details.dart';
+import 'discussion_boards.dart';
+import 'profile_settings.dart';
 
 void main() {
-  runApp(const BookApp());
+  runApp(BookApp());
 }
 
 class BookApp extends StatelessWidget {
   const BookApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Book App',
+      title: 'Book Club App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Book App'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            
-          ],
+        primarySwatch: Colors.indigo,
+        secondaryHeaderColor: Colors.amberAccent,
+        fontFamily: 'Roboto',
+        textTheme: TextTheme(
+          displayLarge: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+          displayMedium: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+          bodyLarge: TextStyle(fontSize: 16.0),
+          bodyMedium: TextStyle(fontSize: 14.0),
         ),
       ),
+      // Start with the login screen
+      initialRoute: '/',
+      routes: {
+        '/': (context) => LoginScreen(),
+        '/home': (context) => HomeScreen(),
+        // '/book_details': (context) => BookDetails(),
+        '/discussion': (context) => DiscussionBoards(),
+        '/profile': (context) => ProfileSettings(),
+      },
     );
   }
 }
