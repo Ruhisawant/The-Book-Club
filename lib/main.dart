@@ -5,14 +5,12 @@ import 'book_details.dart';
 import 'discussion_boards.dart';
 import 'profile_settings.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
 
-//changed file name
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, 
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(BookApp());
 }
 
@@ -33,14 +31,31 @@ class BookApp extends StatelessWidget {
           bodyMedium: TextStyle(fontSize: 14.0),
         ),
       ),
-      // Start with the login screen
-      initialRoute: '/',
+      home: Authentication(),
       routes: {
-        '/': (context) => LoginScreen(),
+        //'/': (context) => LoginScreen(),
         '/home': (context) => HomeScreen(),
         // '/book_details': (context) => BookDetails(),
         '/discussion': (context) => DiscussionBoards(),
         '/profile': (context) => ProfileSettings(),
+      },
+    );
+  }
+}
+
+class Authentication extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(body: Center(child: CircularProgressIndicator()));
+        } else if (snapshot.hasData) {
+          return HomeScreen();
+        } else {
+          return LoginScreen();
+        }
       },
     );
   }
