@@ -1,4 +1,4 @@
-# book_rec_review_app
+# the_book_club
 
 A new Flutter project.
 

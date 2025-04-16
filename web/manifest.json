@@ -1,6 +1,6 @@
 {
-    "name": "book_rec_review_app",
-    "short_name": "book_rec_review_app",
+    "name": "the_book_club",
+    "short_name": "the_book_club",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

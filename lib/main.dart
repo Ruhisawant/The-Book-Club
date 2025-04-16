@@ -4,13 +4,13 @@ import 'home_screen.dart';
 import 'book_details.dart';
 import 'discussion_boards.dart';
 import 'profile_settings.dart';
-//changed file name
+
 void main() {
-  runApp(BookApp());
+  runApp(BookClubApp());
 }
 
-class BookApp extends StatelessWidget {
-  const BookApp({super.key});
+class BookClubApp extends StatelessWidget {
+  const BookClubApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
