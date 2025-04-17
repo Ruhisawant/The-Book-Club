@@ -315,7 +315,7 @@ class HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMi
                   ),
                 ),
                 SizedBox(
-                  height: 250,
+                  height: 300,
                   child: ListView.builder(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     scrollDirection: Axis.horizontal,
