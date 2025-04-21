@@ -15,6 +15,8 @@ class LibraryScreenState extends State<LibraryScreen> {
   bool _isLoading = true;
   int _currentPage = 1;  // To keep track of the current page number
   final int _limit = 20; // Define how many books to load per request
+  final List<Book> _recommendations = [];
+
 
   final List<String> _categories = [
     'All Books', 'Fiction', 'Non-Fiction', 'Mystery', 'Science Fiction', 
@@ -24,7 +26,8 @@ class LibraryScreenState extends State<LibraryScreen> {
   @override
   void initState() {
     super.initState();
-    _loadBooks();  // Initially load the books
+    _loadBooks();
+    _loadRecommendations();
   }
 
   // Load books on init
@@ -54,7 +57,7 @@ class LibraryScreenState extends State<LibraryScreen> {
       _displayedBooks = books;
     });
   } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    Text('Error: $e');
   } finally {
     setState(() {
       _isLoading = false;
@@ -66,8 +69,8 @@ class LibraryScreenState extends State<LibraryScreen> {
   // Update displayed books based on the selected filter (with pagination)
   void _updateDisplayedBooks() {
     setState(() {
-      _displayedBooks = [];  // Clear displayed books
-      _currentPage = 1;      // Reset to page 1
+      _displayedBooks = [];
+      _currentPage = 1;
     });
     
     // For all categories, use the same approach
@@ -92,7 +95,7 @@ class LibraryScreenState extends State<LibraryScreen> {
         _displayedBooks = books;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      Text('Error: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -102,46 +105,53 @@ class LibraryScreenState extends State<LibraryScreen> {
 
   // Fetch more books (for infinite scroll or "Load More" functionality)
   Future<void> _loadMoreBooks() async {
-  if (_isLoading) return;  // Prevent multiple simultaneous loads
-  
-  setState(() {
-    _isLoading = true;
-  });
-
-  _currentPage++; // Increment page to load more books
-
-  String query;
-  if (_currentFilter == 'All Books') {
-    query = 'bestsellers';
-  } else {
-    query = 'subject:$_currentFilter';
-  }
-
-  try {
-    final moreBooks = await _bookService.searchBooks(query, page: _currentPage, limit: _limit);
+    if (_isLoading) return;  // Prevent multiple simultaneous loads
     
-    if (moreBooks.isNotEmpty) {
-      setState(() {
-        _displayedBooks.addAll(moreBooks); // Add new books to the displayed list
-      });
-    } else {
-      // No more books to load
-      _currentPage--;  // Revert page increment
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No more books to load'))
-      );
-    }
-  } catch (e) {
-    _currentPage--;  // Revert page increment on error
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error loading more books: $e'))
-    );
-  } finally {
     setState(() {
-      _isLoading = false;
+      _isLoading = true;
     });
+
+    _currentPage++; // Increment page to load more books
+
+    String query;
+    if (_currentFilter == 'All Books') {
+      query = 'bestsellers';
+    } else {
+      query = 'subject:$_currentFilter';
+    }
+
+    try {
+      final moreBooks = await _bookService.searchBooks(query, page: _currentPage, limit: _limit);
+      
+      if (moreBooks.isNotEmpty) {
+        setState(() {
+          _displayedBooks.addAll(moreBooks); // Add new books to the displayed list
+        });
+      } else {
+        // No more books to load
+        _currentPage--;  // Revert page increment
+        Text('No more books to load');
+      }
+    } catch (e) {
+      _currentPage--;  // Revert page increment on error
+      Text('Error loading more books: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
-}
+
+  Future<void> _loadRecommendations() async {
+    try {
+      final recBooks = await _bookService.searchBooks('recommended', startIndex: 0, limit: 10);
+      setState(() {
+        _recommendations.addAll(recBooks);
+      });
+    } catch (e) {
+      debugPrint('Error loading recommendations: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +170,7 @@ class LibraryScreenState extends State<LibraryScreen> {
       body: Column(
         children: [
           // Category filter
-          Container(
+          SizedBox(
             height: 50,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
@@ -198,44 +208,90 @@ class LibraryScreenState extends State<LibraryScreen> {
               },
             ),
           ),
-          
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Recommended for You',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+          _isLoading 
+          ? Center(child: CircularProgressIndicator())
+          : SizedBox(
+              height: 300,
+              child: ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: _recommendations.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    width: 150,
+                    margin: EdgeInsets.only(right: 16),
+                    child: BookCard(
+                      book: _recommendations[index],
+                      onTap: () => _viewBookDetails(_recommendations[index]),
+                      onStatusTap: () {},
+                    ),
+                  );
+                },
+              ),
+            ),
           // Book grid
           Expanded(
-            child: _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : _displayedBooks.isEmpty
-                    ? Center(child: Text('No books found', style: TextStyle(fontSize: 16, color: Colors.grey[600])))
-                    : RefreshIndicator(
-                        onRefresh: _loadBooks,
-                        child: NotificationListener<ScrollNotification>(
-                          onNotification: (scrollNotification) {
-                            if (scrollNotification is ScrollUpdateNotification &&
-                                scrollNotification.metrics.pixels == scrollNotification.metrics.maxScrollExtent) {
-                              // User reached the bottom of the list, load more books
-                              _loadMoreBooks();
-                              return true;
-                            }
-                            return false;
-                          },
-                          child: GridView.builder(
-                            padding: EdgeInsets.all(16),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 5,
-                              childAspectRatio: 0.55,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'All',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                Expanded(
+                  child: _isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : _displayedBooks.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No books found',
+                                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _loadBooks,
+                              child: NotificationListener<ScrollNotification>(
+                                onNotification: (scrollNotification) {
+                                  if (scrollNotification is ScrollUpdateNotification &&
+                                      scrollNotification.metrics.pixels ==
+                                          scrollNotification.metrics.maxScrollExtent) {
+                                    _loadMoreBooks();
+                                    return true;
+                                  }
+                                  return false;
+                                },
+                                child: GridView.builder(
+                                  padding: EdgeInsets.all(16),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 5,
+                                    childAspectRatio: 0.55,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 16,
+                                  ),
+                                  itemCount: _displayedBooks.length,
+                                  itemBuilder: (context, index) {
+                                    return BookCard(
+                                      book: _displayedBooks[index],
+                                      onTap: () => _viewBookDetails(_displayedBooks[index]),
+                                      onStatusTap: () {},
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
-                            itemCount: _displayedBooks.length,
-                            itemBuilder: (context, index) {
-                              return BookCard(
-                                book: _displayedBooks[index],
-                                onTap: () => _viewBookDetails(_displayedBooks[index]),
-                                onStatusTap: () {},
-                              );
-                            },
-                          ),
-                        ),
-                      ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
