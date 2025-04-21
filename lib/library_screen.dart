@@ -13,11 +13,9 @@ class LibraryScreenState extends State<LibraryScreen> {
   final BookData _bookService = BookData();
   List<Book> _displayedBooks = [];
   bool _isLoading = true;
-  int _currentPage = 1;  // To keep track of the current page number
-  final int _limit = 20; // Define how many books to load per request
+  int _currentPage = 1;
+  final int _limit = 20;
   final List<Book> _recommendations = [];
-
-
   final List<String> _categories = [
     'All Books', 'Fiction', 'Non-Fiction', 'Mystery', 'Science Fiction', 
     'Fantasy', 'Biography', 'Self-Help', 'Romance', 'Thriller'
@@ -30,50 +28,44 @@ class LibraryScreenState extends State<LibraryScreen> {
     _loadRecommendations();
   }
 
-  // Load books on init
   Future<void> _loadBooks() async {
-  setState(() {
-    _isLoading = true;
-    _displayedBooks = [];  // Clear existing books
-    _currentPage = 1;      // Reset to page 1
-  });
+    setState(() {
+      _isLoading = true;
+      _displayedBooks = [];
+      _currentPage = 1;
+    });
 
-  try {
-    // Initial books load
-    final books = await _bookService.searchBooks('bestsellers', startIndex: 0, limit: 40);
-    
-    // Set statuses for sample books
-    for (int i = 0; i < books.length; i++) {
-      if (i < 10) {
-        _bookService.updateBookStatus(books[i], 'want_to_read');
-      } else if (i < 20) {
-        _bookService.updateBookStatus(books[i], 'currently_reading');
-      } else if (i < 30) {
-        _bookService.updateBookStatus(books[i], 'finished');
+    try {
+      final books = await _bookService.searchBooks('bestsellers', startIndex: 0, limit: 40);
+      
+      for (int i = 0; i < books.length; i++) {
+        if (i < 10) {
+          _bookService.updateBookStatus(books[i], 'want_to_read');
+        } else if (i < 20) {
+          _bookService.updateBookStatus(books[i], 'currently_reading');
+        } else if (i < 30) {
+          _bookService.updateBookStatus(books[i], 'finished');
+        }
       }
+      
+      setState(() {
+        _displayedBooks = books;
+      });
+    } catch (e) {
+      Text('Error: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
-    
-    setState(() {
-      _displayedBooks = books;
-    });
-  } catch (e) {
-    Text('Error: $e');
-  } finally {
-    setState(() {
-      _isLoading = false;
-    });
   }
-}
 
-
-  // Update displayed books based on the selected filter (with pagination)
   void _updateDisplayedBooks() {
     setState(() {
       _displayedBooks = [];
       _currentPage = 1;
     });
-    
-    // For all categories, use the same approach
+
     _fetchBooksByFilter(_currentFilter);
   }
 
@@ -84,9 +76,9 @@ class LibraryScreenState extends State<LibraryScreen> {
 
     String query;
     if (filter == 'All Books') {
-      query = 'bestsellers';  // Default query for all books
+      query = 'bestsellers';
     } else {
-      query = 'subject:$filter';  // Subject-based query for categories
+      query = 'subject:$filter';
     }
 
     try {
@@ -103,15 +95,14 @@ class LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
-  // Fetch more books (for infinite scroll or "Load More" functionality)
   Future<void> _loadMoreBooks() async {
-    if (_isLoading) return;  // Prevent multiple simultaneous loads
+    if (_isLoading) return;
     
     setState(() {
       _isLoading = true;
     });
 
-    _currentPage++; // Increment page to load more books
+    _currentPage++;
 
     String query;
     if (_currentFilter == 'All Books') {
@@ -125,15 +116,14 @@ class LibraryScreenState extends State<LibraryScreen> {
       
       if (moreBooks.isNotEmpty) {
         setState(() {
-          _displayedBooks.addAll(moreBooks); // Add new books to the displayed list
+          _displayedBooks.addAll(moreBooks);
         });
       } else {
-        // No more books to load
-        _currentPage--;  // Revert page increment
+        _currentPage--;
         Text('No more books to load');
       }
     } catch (e) {
-      _currentPage--;  // Revert page increment on error
+      _currentPage--;
       Text('Error loading more books: $e');
     } finally {
       setState(() {
@@ -183,9 +173,9 @@ class LibraryScreenState extends State<LibraryScreen> {
                   onTap: () {
                     setState(() {
                       _currentFilter = category;
-                      _displayedBooks.clear(); // Clear current list when category changes
-                      _currentPage = 1; // Reset to page 1
-                      _updateDisplayedBooks(); // Update displayed books
+                      _displayedBooks.clear();
+                      _currentPage = 1;
+                      _updateDisplayedBooks();
                     });
                   },
                   child: Container(

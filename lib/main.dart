@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
-import 'library_screen.dart';
-// import 'book_details.dart';
+import 'book_details.dart';
 import 'discussion_boards.dart';
 import 'profile_settings.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -36,8 +35,7 @@ class BookClubApp extends StatelessWidget {
       routes: {
         //'/': (context) => LoginScreen(),
         '/home': (context) => HomeScreen(),
-        '/library': (context) => LibraryScreen(),
-        // '/book_details': (context) => BookDetailsScreen(),
+        // '/book_details': (context) => BookDetails(),
         '/discussion': (context) => DiscussionBoards(),
         '/profile': (context) => ProfileSettings(),
       },

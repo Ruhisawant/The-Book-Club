@@ -4,12 +4,17 @@ import '../library_screen.dart';
 import '../discussion_boards.dart';
 import '../profile_settings.dart';
 
-class Navigation extends StatelessWidget {
-  final int currentIndex;
+class Navigation extends StatefulWidget {
+  const Navigation({super.key});
 
-  const Navigation({super.key, required this.currentIndex});
+  @override
+  NavigationState createState() => NavigationState();
+}
 
-  static final List<Widget> _screens = [
+class NavigationState extends State<Navigation> {
+  int _currentIndex = 0;
+  
+  final List<Widget> _screens = [
     HomeScreen(),
     DiscussionBoards(),
     LibraryScreen(),
@@ -19,19 +24,14 @@ class Navigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[currentIndex],
+      body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: currentIndex,
+        currentIndex: _currentIndex,
         onTap: (index) {
-          if (index != currentIndex) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => Navigation(currentIndex: index),
-              ),
-            );
-          }
+          setState(() {
+            _currentIndex = index;
+          });
         },
         items: const [
           BottomNavigationBarItem(

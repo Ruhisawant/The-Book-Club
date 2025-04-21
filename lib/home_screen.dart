@@ -11,7 +11,6 @@ class HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMi
   late TabController _tabController;
   final BookData _bookData = BookData();
   bool _isLoading = true;
-  // List<Book> _recommendations = [];
 
   @override
   void initState() {
@@ -26,15 +25,11 @@ class HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMi
     });
     
     try {
-      // Initialize sample data if not already loaded
       if (_bookData.allBooks.isEmpty) {
         await _bookData.initializeWithSampleData();
       }
-      
-      // Get recommendations
-      // _recommendations = await _bookData.getRecommendedBooks('fiction');
     } catch (e) {
-      debugPrint('Error loading initial data: $e');
+      Text('Error loading initial data: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -228,44 +223,42 @@ class HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMi
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-  type: BottomNavigationBarType.fixed,
-  currentIndex: 0,
-  onTap: (index) {
-    switch (index) {
-      case 0:
-        // Already on home
-        break;
-      case 1:
-        Navigator.pushNamed(context, '/discussion');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/library'); // 👈 Updated route
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/profile');
-        break;
-    }
-  },
-  items: [
-    BottomNavigationBarItem(
-      icon: Icon(Icons.book),
-      label: 'My Books',
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.forum),
-      label: 'Discussions',
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.library_books), // 👈 Updated icon
-      label: 'Library',                // 👈 Updated label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.person),
-      label: 'Profile',
-    ),
-  ],
-),
-
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 0,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              break;
+            case 1:
+              Navigator.pushNamed(context, '/discussion');
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/library');
+              break;
+            case 3:
+              Navigator.pushNamed(context, '/profile');
+              break;
+          }
+        },
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.book),
+            label: 'My Books',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.forum),
+            label: 'Discussions',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.library_books),
+            label: 'Library',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
     );
   }
 }
