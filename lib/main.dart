@@ -44,6 +44,7 @@ class BookClubApp extends StatelessWidget {
 }
 
 class Authentication extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
