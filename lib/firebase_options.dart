@@ -41,48 +41,48 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCOFWgKrcjJjmFNo_lHr4oyzwZxD4izxm8',
-    appId: '1:933149243820:web:48dd6e5987ec21189c6209',
-    messagingSenderId: '933149243820',
-    projectId: 'the-book-club-19c4d',
-    authDomain: 'the-book-club-19c4d.firebaseapp.com',
-    storageBucket: 'the-book-club-19c4d.firebasestorage.app',
-    measurementId: 'G-962K2N6S4F',
+    apiKey: 'AIzaSyAaWqFA8RJLtCvZ94iZcYGrCtu2vaNB73Q',
+    appId: '1:472990299269:web:12fc0b621a295db200a5ec',
+    messagingSenderId: '472990299269',
+    projectId: 'the-book-club-26855',
+    authDomain: 'the-book-club-26855.firebaseapp.com',
+    storageBucket: 'the-book-club-26855.firebasestorage.app',
+    measurementId: 'G-R96KDD3FWF',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyChDsxvwYqZKilf-BT0etHPqfMX4w01MQc',
-    appId: '1:933149243820:android:75d3d80c9258929c9c6209',
-    messagingSenderId: '933149243820',
-    projectId: 'the-book-club-19c4d',
-    storageBucket: 'the-book-club-19c4d.firebasestorage.app',
+    apiKey: 'AIzaSyBe6FWzRCB8bI4i7LSwzVi-B-O3XwBtXh0',
+    appId: '1:472990299269:android:6ff07e37055c970000a5ec',
+    messagingSenderId: '472990299269',
+    projectId: 'the-book-club-26855',
+    storageBucket: 'the-book-club-26855.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyC4BxEtx5Tk8kLLq7CbZy43guRJZmYg9gE',
-    appId: '1:933149243820:ios:70288e9d7e1340689c6209',
-    messagingSenderId: '933149243820',
-    projectId: 'the-book-club-19c4d',
-    storageBucket: 'the-book-club-19c4d.firebasestorage.app',
-    iosBundleId: 'com.example.bookRecReviewApp',
+    apiKey: 'AIzaSyBLOgumTTBPejHeDUlyuBnH9uVCQ9cyiIQ',
+    appId: '1:472990299269:ios:1f384ff181ecdd3800a5ec',
+    messagingSenderId: '472990299269',
+    projectId: 'the-book-club-26855',
+    storageBucket: 'the-book-club-26855.firebasestorage.app',
+    iosBundleId: 'com.example.theBookClub',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyC4BxEtx5Tk8kLLq7CbZy43guRJZmYg9gE',
-    appId: '1:933149243820:ios:70288e9d7e1340689c6209',
-    messagingSenderId: '933149243820',
-    projectId: 'the-book-club-19c4d',
-    storageBucket: 'the-book-club-19c4d.firebasestorage.app',
-    iosBundleId: 'com.example.bookRecReviewApp',
+    apiKey: 'AIzaSyBLOgumTTBPejHeDUlyuBnH9uVCQ9cyiIQ',
+    appId: '1:472990299269:ios:1f384ff181ecdd3800a5ec',
+    messagingSenderId: '472990299269',
+    projectId: 'the-book-club-26855',
+    storageBucket: 'the-book-club-26855.firebasestorage.app',
+    iosBundleId: 'com.example.theBookClub',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCOFWgKrcjJjmFNo_lHr4oyzwZxD4izxm8',
-    appId: '1:933149243820:web:96ff7962649b2c6a9c6209',
-    messagingSenderId: '933149243820',
-    projectId: 'the-book-club-19c4d',
-    authDomain: 'the-book-club-19c4d.firebaseapp.com',
-    storageBucket: 'the-book-club-19c4d.firebasestorage.app',
-    measurementId: 'G-6FJWHZ4DKZ',
+    apiKey: 'AIzaSyAaWqFA8RJLtCvZ94iZcYGrCtu2vaNB73Q',
+    appId: '1:472990299269:web:4226b79917b84c3d00a5ec',
+    messagingSenderId: '472990299269',
+    projectId: 'the-book-club-26855',
+    authDomain: 'the-book-club-26855.firebaseapp.com',
+    storageBucket: 'the-book-club-26855.firebasestorage.app',
+    measurementId: 'G-2DHEJPPZN6',
   );
 }

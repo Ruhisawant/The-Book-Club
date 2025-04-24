@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,7 +21,7 @@ class LoginScreenState extends State<LoginScreen> {
   bool loggedIn = true;
   String errorMessage = '';
 
-  Future<void> AuthenticationHandler() async {
+  Future<void> authenticationHandler() async {
     try {
       final email = emailControl.text.trim();
       final password = passwordControl.text.trim();
@@ -31,10 +31,10 @@ class LoginScreenState extends State<LoginScreen> {
           email: email,
           password: password,
         );
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Successful Login!')));
-        Navigator.pushReplacementNamed(context, '/home');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Successful Login!')));
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       } else {
         final userInformation = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(email: email, password: password);
@@ -42,16 +42,20 @@ class LoginScreenState extends State<LoginScreen> {
             .collection('users')
             .doc(userInformation.user!.uid)
             .set({'email': email, 'genrePreference': genreSelect});
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Account Made!')));
-              setState(() {
-                loggedIn = true;
-              });
-            }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Account Made!')));
+          setState(() {
+            loggedIn = true;
+          });
+        }
+      }
     } on FirebaseAuthException catch (e) {
       setState(() {
         errorMessage = e.message ?? 'Error';
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please Try Again'))); 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please Try Again')));
+      }
     }
   }
 
@@ -111,7 +115,7 @@ class LoginScreenState extends State<LoginScreen> {
                 ),
               SizedBox(height: 25),
               ElevatedButton(
-                onPressed: AuthenticationHandler,
+                onPressed: authenticationHandler,
                 child: Text(loggedIn ? 'Login' : 'Sign Up'),
               ),
               SizedBox(height: 15),

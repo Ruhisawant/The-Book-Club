@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class ProfileSettings extends StatefulWidget {
-  const ProfileSettings({super.key});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
   @override
-  ProfileSettingsState createState() => ProfileSettingsState();
+  ProfileScreenState createState() => ProfileScreenState();
 }
 
-class ProfileSettingsState extends State<ProfileSettings> {
+class ProfileScreenState extends State<ProfileScreen> {
   // Mock user data - in a real app, this would come from a database or API
   String username = "BookLover123";
   String email = "booklover123@example.com";
