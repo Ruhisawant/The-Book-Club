@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/login_screen.dart';
+import 'models/book_details.dart';
 import 'navigation.dart';
 
 void main() async {
@@ -29,6 +30,7 @@ class BookClubApp extends StatelessWidget {
         '/library': (context) => const Navigation(currentIndex: 1),
         '/discussion': (context) => const Navigation(currentIndex: 2),
         '/profile': (context) => const Navigation(currentIndex: 3),
+        '/book_details': (context) => const BookDetails(),
       },
     );
   }
