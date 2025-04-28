@@ -11,17 +11,10 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   final BookData _bookData = BookData();
   
-  // State management
   String _currentFilter = 'All Books';
   List<Book> _displayedBooks = [];
-  List<Book> _recommendedBooks = [];
   bool _isLoading = true;
-  bool _isLoadingMore = false;
-  bool _hasMoreBooks = true;
-  int _currentPage = 1;
-  final int _limit = 20;
 
-  // Category definitions
   final List<String> _categories = [
     'All Books', 'Fiction', 'Non-Fiction', 'Mystery', 'Science Fiction', 
     'Fantasy', 'Biography', 'Self-Help', 'Romance', 'Thriller'
@@ -30,24 +23,57 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    _fetchBooks();
   }
 
-  // Load both main books and recommendations
-  Future<void> _loadInitialData() async {
+  Future<void> _fetchBooks() async {
     setState(() {
       _isLoading = true;
+      _displayedBooks = [];
     });
 
     try {
-      // Load in parallel for better performance
-      await Future.wait([
-        _loadBooks(),
-        _loadRecommendations(),
-      ]);
+      List<Book> booksToDisplay = [];
+      final int booksPerGenre = 2;
+
+      if (_currentFilter == 'All Books') {
+        final genres = [
+          'fiction', 'mystery', 'science-fiction', 'fantasy', 
+          'biography', 'romance', 'thriller', 'horror', 
+          'history', 'poetry', 'young-adult', 'classics'
+        ];
+
+        final futures = genres.map((genre) async {
+          try {
+            final books = await _bookData.getBooksByGenre(genre);
+            return books.take(booksPerGenre).toList();
+          } catch (e) {
+            debugPrint('Error loading $genre books: $e');
+            return <Book>[];
+          }
+        }).toList();
+
+        final results = await Future.wait(futures);
+
+        for (var bookList in results) {
+          booksToDisplay.addAll(bookList);
+        }
+
+        if (booksToDisplay.length > 20) {
+          booksToDisplay = booksToDisplay.sublist(0, 20);
+        }
+
+      } else {
+        final genre = _getGenreFromFilter(_currentFilter);
+        booksToDisplay = await _bookData.getBooksByGenre(genre);
+      }
+
+      setState(() {
+        _displayedBooks = booksToDisplay;
+      });
+
     } catch (e) {
-      debugPrint('Error loading initial data: $e');
-      _showErrorSnackBar('Failed to load books. Please try again.');
+      _getSnackbarMessage('Failed to load books. Please try again.');
     } finally {
       setState(() {
         _isLoading = false;
@@ -55,98 +81,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
-  // Load books based on current filter
-  Future<void> _loadBooks() async {
-    if (_isLoading && !_isLoadingMore) return;
-    
-    setState(() {
-      if (!_isLoadingMore) {
-        _displayedBooks = [];
-        _currentPage = 1;
-      }
-    });
-
-    try {
-      final query = _getQueryForFilter(_currentFilter);
-      final books = await _bookData.searchBooks(
-        query,
-        page: _currentPage,
-        limit: _limit,
-      );
-      
-      setState(() {
-        if (_isLoadingMore) {
-          _displayedBooks.addAll(books);
-        } else {
-          _displayedBooks = books;
-        }
-        
-        // Check if we've reached the end
-        _hasMoreBooks = books.length >= _limit;
-      });
-    } catch (e) {
-      debugPrint('Error loading books: $e');
-      if (!_isLoadingMore) {
-        _showErrorSnackBar('Failed to load books. Please try again.');
-      }
-    }
-  }
-
-  // Load recommended books
-  Future<void> _loadRecommendations() async {
-    try {
-      // Use the getRecommendedBooks method from BookData for better relevance
-      // If user has books in their lists, we could use those genres for better recommendations
-      final genre = _bookData.allBooks.isNotEmpty ? 'fiction' : 'bestsellers';
-      final recommendations = await _bookData.getRecommendedBooks(genre);
-      
-      setState(() {
-        _recommendedBooks = recommendations;
-      });
-    } catch (e) {
-      debugPrint('Error loading recommendations: $e');
-    }
-  }
-
-  // Load more books for infinite scrolling
-  Future<void> _loadMoreBooks() async {
-    if (_isLoadingMore || !_hasMoreBooks) return;
-    
-    setState(() {
-      _isLoadingMore = true;
-      _currentPage++;
-    });
-
-    try {
-      final query = _getQueryForFilter(_currentFilter);
-      final moreBooks = await _bookData.searchBooks(
-        query,
-        page: _currentPage,
-        limit: _limit,
-      );
-      
-      setState(() {
-        _displayedBooks.addAll(moreBooks);
-        _hasMoreBooks = moreBooks.length >= _limit;
-      });
-    } catch (e) {
-      debugPrint('Error loading more books: $e');
-      // Revert page increment on error
-      _currentPage--;
-    } finally {
-      setState(() {
-        _isLoadingMore = false;
-      });
-    }
-  }
-
-  // Helper to get API query based on filter
-  String _getQueryForFilter(String filter) {
+  // Helper to get genre format based on filter
+  String _getGenreFromFilter(String filter) {
     if (filter == 'All Books') {
       return 'bestsellers';
     } else {
-      // Convert filter to proper query format
-      return 'subject:${filter.toLowerCase().replaceAll(' ', '+')}';
+      return filter.toLowerCase().replaceAll(' ', '-');
     }
   }
 
@@ -156,17 +96,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     
     setState(() {
       _currentFilter = newFilter;
-      _displayedBooks = [];
-      _currentPage = 1;
-      _hasMoreBooks = true;
-      _isLoading = true;
     });
     
-    _loadBooks().then((_) {
-      setState(() {
-        _isLoading = false;
-      });
-    });
+    _fetchBooks();
   }
 
   // Show book details
@@ -174,7 +106,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     Navigator.pushNamed(context, '/book_details', arguments: book);
   }
 
-  // Show status change dialog (similar to HomeScreen)
+  // Show status change dialog using the enum-based approach
   void _showStatusChangeDialog(Book book) {
     showDialog(
       context: context,
@@ -184,38 +116,38 @@ class _LibraryScreenState extends State<LibraryScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('Want to Read'),
+              title: Text(ReadingStatus.wantToRead.displayName),
               leading: Icon(
                 Icons.bookmark_border,
-                color: _getStatusColor('want_to_read'),
+                color: ReadingStatus.wantToRead.color,
               ),
-              selected: book.status == 'want_to_read',
+              selected: book.status == ReadingStatus.wantToRead.value,
               onTap: () {
-                _updateBookStatus(book, 'want_to_read');
+                _updateBookStatus(book, ReadingStatus.wantToRead.value);
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              title: const Text('Currently Reading'),
+              title: Text(ReadingStatus.currentlyReading.displayName),
               leading: Icon(
                 Icons.auto_stories,
-                color: _getStatusColor('currently_reading'),
+                color: ReadingStatus.currentlyReading.color,
               ),
-              selected: book.status == 'currently_reading',
+              selected: book.status == ReadingStatus.currentlyReading.value,
               onTap: () {
-                _updateBookStatus(book, 'currently_reading');
+                _updateBookStatus(book, ReadingStatus.currentlyReading.value);
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              title: const Text('Finished'),
+              title: Text(ReadingStatus.finished.displayName),
               leading: Icon(
                 Icons.check_circle_outline,
-                color: _getStatusColor('finished'),
+                color: ReadingStatus.finished.color,
               ),
-              selected: book.status == 'finished',
+              selected: book.status == ReadingStatus.finished.value,
               onTap: () {
-                _updateBookStatus(book, 'finished');
+                _updateBookStatus(book, ReadingStatus.finished.value);
                 Navigator.pop(context);
               },
             ),
@@ -231,7 +163,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  // Update book status (similar to HomeScreen)
+  // Update book status using the BookData method
   void _updateBookStatus(Book book, String status) {
     setState(() {
       _bookData.updateBookStatus(book, status);
@@ -245,48 +177,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  // Get status color (reused from HomeScreen)
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'want_to_read':
-        return Colors.blue;
-      case 'currently_reading':
-        return Colors.orange;
-      case 'finished':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  // Get snackbar message (reused from HomeScreen)
+  // Get snackbar message based on status
   String _getSnackbarMessage(String status) {
-    switch (status) {
-      case 'want_to_read':
+    final readingStatus = getStatusFromString(status);
+    switch (readingStatus) {
+      case ReadingStatus.wantToRead:
         return 'Book added to Want to Read list';
-      case 'currently_reading':
+      case ReadingStatus.currentlyReading:
         return 'Book moved to Currently Reading list';
-      case 'finished':
+      case ReadingStatus.finished:
         return 'Book marked as Finished';
-      default:
-        return 'Book status updated';
     }
-  }
-
-  // Show error snackbar
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  // Navigate to search screen
-  void _navigateToSearch() {
-    Navigator.pushNamed(context, '/search');
   }
 
   @override
@@ -294,16 +195,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book Library'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _navigateToSearch,
-          ),
-        ],
       ),
       body: RefreshIndicator(
-        onRefresh: _loadInitialData,
-        child: _isLoading && _currentPage == 1
+        onRefresh: _fetchBooks,
+        child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _buildContent(),
       ),
@@ -343,66 +238,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ),
 
-        // Recommendations section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Recommended for You',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                TextButton(
-                  onPressed: _loadRecommendations,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Recommendations carousel
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 260,
-            child: _recommendedBooks.isEmpty
-                ? const Center(
-                    child: Text('No recommendations available'),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _recommendedBooks.length,
-                    itemBuilder: (context, index) {
-                      final book = _recommendedBooks[index];
-                      return Container(
-                        width: 150,
-                        margin: const EdgeInsets.only(right: 16),
-                        child: BookCard(
-                          book: book,
-                          onTap: () => _viewBookDetails(book),
-                          onStatusTap: () => _showStatusChangeDialog(book),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ),
-
-        // Main library section header
+        // Section header
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              _currentFilter == 'All Books' ? 'Library' : _currentFilter,
+              _currentFilter == 'All Books' 
+                  ? 'All Books' 
+                  : '$_currentFilter Books',
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
         ),
 
-        // Main book grid
+        // Books grid
         _displayedBooks.isEmpty
             ? SliverFillRemaining(
                 child: Center(
@@ -423,45 +272,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 padding: const EdgeInsets.all(16),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.55,
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.7,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final book = _displayedBooks[index];
-                      return BookCard(
+                      
+                      return LibraryBookCard(
                         book: book,
                         onTap: () => _viewBookDetails(book),
                         onStatusTap: () => _showStatusChangeDialog(book),
+                        showGenreLabel: _currentFilter == 'All Books',
                       );
                     },
                     childCount: _displayedBooks.length,
                   ),
                 ),
               ),
-
-        // Loading indicator for infinite scrolling
-        if (_isLoadingMore)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-
-        // Load more button
-        if (_hasMoreBooks && !_isLoadingMore && _displayedBooks.isNotEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: _loadMoreBooks,
-                child: const Text('Load More'),
-              ),
-            ),
-          ),
 
         // Bottom padding
         const SliverToBoxAdapter(

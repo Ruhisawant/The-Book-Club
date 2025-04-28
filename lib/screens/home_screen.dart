@@ -24,8 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // Initialize with some sample data if lists are empty
-      await _bookData.initializeWithSampleData();
+      // Empty when first loaded
     } catch (e) {
       debugPrint('Error loading books: $e');
     } finally {
@@ -86,12 +85,12 @@ class _HomeScreenState extends State<HomeScreen> {
       itemCount: books.length,
       itemBuilder: (context, index) {
         final book = books[index];
-        return _buildBookCard(book);
+        return _homeBookCard(book);
       },
     );
   }
 
-  Widget _buildBookCard(Book book) {
+  Widget _homeBookCard(Book book) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 3,
@@ -153,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Icon(Icons.star, size: 16, color: Colors.amber),
                       const SizedBox(width: 4),
                       Text(
-                        book.rating.toString(),
+                        book.rating > 0 ? book.rating.toStringAsFixed(1) : "N/A",
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],

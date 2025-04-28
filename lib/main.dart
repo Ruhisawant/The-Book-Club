@@ -22,12 +22,12 @@ class BookClubApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/',
+      initialRoute: '/library',
       routes: {
         '/': (context) => const LoginScreen(),
         '/home': (context) => const Navigation(currentIndex: 0),
-        '/discussion': (context) => const Navigation(currentIndex: 1),
-        '/library': (context) => const Navigation(currentIndex: 2),
+        '/library': (context) => const Navigation(currentIndex: 1),
+        '/discussion': (context) => const Navigation(currentIndex: 2),
         '/profile': (context) => const Navigation(currentIndex: 3),
       },
     );
