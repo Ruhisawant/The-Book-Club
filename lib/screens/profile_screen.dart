@@ -1,91 +1,240 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
   @override
-  ProfileScreenState createState() => ProfileScreenState();
+  State<ProfileScreen> createState() => ProfileScreenState();
 }
 
 class ProfileScreenState extends State<ProfileScreen> {
-  // Mock user data - in a real app, this would come from a database or API
-  String username = "BookLover123";
-  String email = "booklover123@example.com";
-  List<String> genrePreferences = ["Fiction", "Mystery", "Science Fiction", "Biography"];
-  bool darkMode = false;
-  bool notifications = true;
-
-  // Controllers for text fields
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _currentPasswordController = TextEditingController();
-  final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  User? user;
+  String? username;
+  String? email;
+  String? address;
+  List<String> favoriteBookGenres = [];
+  bool appNotifications = false;
+  final TextEditingController newUsername = TextEditingController();
+  final TextEditingController newEmail = TextEditingController();
+  final TextEditingController currentPassword = TextEditingController();
+  final TextEditingController newPassword = TextEditingController();
+  final TextEditingController newPasswordConfirmation = TextEditingController();
+  String passwordErrorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _usernameController.text = username;
-    _emailController.text = email;
+    getUserProfile();
   }
 
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _emailController.dispose();
-    _currentPasswordController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
+  Future<void> getUserProfile() async {
+    user = _auth.currentUser;
+    if (user != null) {
+      final userDoc = await firestore.collection('users').doc(user!.uid).get();
+      if (userDoc.exists) {
+        setState(() {
+          username = userDoc.data()?['username'] as String? ?? '';
+          email = user!.email;
+          address = userDoc.data()?['address'] as String? ?? '';
+          favoriteBookGenres =
+              (userDoc.data()?['favoriteBookGenres'] as List<dynamic>?)
+                  ?.cast<String>() ??
+              [];
+        });
+      } else {
+        setState(() {
+          email = user!.email;
+        });
+      }
+    }
   }
 
-  // Mock method to save profile changes
-  void _saveProfileChanges() {
-    setState(() {
-      username = _usernameController.text;
-      email = _emailController.text;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully')),
+  Future<void> profileUpdate() async {
+    if (user != null &&
+        (username != newUsername.text.trim() ||
+            email != newEmail.text.trim())) {
+      try {
+        final updates = <String, dynamic>{};
+        if (username != newUsername.text.trim()) {
+          updates['username'] = newUsername.text.trim();
+          setState(() {
+            username = newUsername.text.trim();
+          });
+        }
+        if (email != newEmail.text.trim()) {
+          await user!.updateEmail(newEmail.text.trim());
+          setState(() {
+            email = newEmail.text.trim();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Email has been updated.')),
+          );
+        }
+        if (updates.isNotEmpty) {
+          await firestore.collection('users').doc(user!.uid).update(updates);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Profile has updated!')));
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No changesmade.')));
+        }
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile: ${e.message}')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('An error has occured: $e')));
+      }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No changes made.')));
+    }
+  }
+
+  Future<void> favoriteGenre() async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        TextEditingController genre = TextEditingController();
+        return AlertDialog(
+          title: const Text('Add Favorite Genre'),
+          content: TextField(
+            controller: genre,
+            decoration: const InputDecoration(hintText: 'Add genre'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Add'),
+              onPressed: () {
+                final newAddedGenre = genre.text.trim();
+                if (newAddedGenre.isNotEmpty &&
+                    !favoriteBookGenres.contains(newAddedGenre)) {
+                  setState(() {
+                    favoriteBookGenres.add(newAddedGenre);
+                  });
+                  firestore.collection('users').doc(user!.uid).update({
+                    'favoriteBookGenres': favoriteBookGenres,
+                  });
+                }
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
-  // Mock method to change password
-  void _changePassword() {
-    if (_newPasswordController.text.isEmpty || 
-        _currentPasswordController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all password fields')),
-      );
+  Future<void> passwordChange() async {
+    if (currentPassword.text.isEmpty ||
+        newPassword.text.isEmpty ||
+        newPasswordConfirmation.text.isEmpty) {
+      setState(() {
+        passwordErrorMessage = 'Please fill out all boxes.';
+      });
       return;
     }
-    
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('New passwords do not match')),
-      );
+    if (newPassword.text != newPasswordConfirmation.text) {
+      setState(() {
+        passwordErrorMessage = 'New passwords do not match.';
+      });
       return;
     }
-    
-    // In a real app, you would verify the current password and update with the new one
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password changed successfully')),
-    );
-    
-    _currentPasswordController.clear();
-    _newPasswordController.clear();
-    _confirmPasswordController.clear();
+    if (newPassword.text.length < 6) {
+      setState(() {
+        passwordErrorMessage = 'Password must be 6 characters or longer.';
+      });
+      return;
+    }
+
+    try {
+      final appCredentials = EmailAuthProvider.credential(
+        email: user!.email!,
+        password: currentPassword.text,
+      );
+      await user!.reauthenticateWithCredential(appCredentials);
+      await user!.updatePassword(newPassword.text.trim());
+      setState(() {
+        passwordErrorMessage = '';
+        currentPassword.clear();
+        newPassword.clear();
+        newPasswordConfirmation.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password has been updated!')),
+        );
+      });
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        passwordErrorMessage = e.message ?? 'Password change failed.';
+      });
+    }
   }
 
-  // Mock method for logout
-  void _logout() {
-    // In a real app, you would clear user session/token here
-    Navigator.of(context).pushReplacementNamed('/login'); // Navigate to login screen
+  Future<void> appLogout() async {
+    await _auth.signOut();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context,'/',); // replace / with the navigation route for the login screen
+    }
+  }
+
+  Future<void> accountDelete() async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Account'),
+          content: const Text('Do you want to delete your account?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete Account'),
+              onPressed: () async {
+                try {
+                  await user?.delete();
+                  if (mounted) {
+                    Navigator.pushReplacementNamed(context,'/'); //Replace with the navigation route for the login screen
+                  }
+                } on FirebaseAuthException catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Account deletion failed: ${e.message}'),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    newUsername.text = username ?? '';
+    newEmail.text = email ?? '';
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -96,277 +245,119 @@ class ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile picture section
-            Center(
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.blue.shade200,
-                    child: Text(
-                      username.isNotEmpty ? username[0].toUpperCase() : "?",
-                      style: const TextStyle(fontSize: 40, color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () {
-                      // Handle changing profile picture
-                    },
-                    child: const Text('Change Profile Picture'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Account Information Section
-            const Text(
+            Text(
               'Account Information',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const Divider(),
-            const SizedBox(height: 8),
-            
-            // Username field
+            const SizedBox(height: 10.0),
             TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
-              ),
+              controller: newUsername,
+              decoration: const InputDecoration(labelText: 'Username'),
             ),
-            const SizedBox(height: 16),
-            
-            // Email field
             TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
+              controller: newEmail,
+              decoration: const InputDecoration(labelText: 'Email'),
               keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 16),
-            
-            // Save Changes button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saveProfileChanges,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+            if (address != null)
+              TextField(
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Address',
+                  hintText: address,
                 ),
-                child: const Text('Save Changes'),
               ),
+            const SizedBox(height: 20.0),
+            ElevatedButton(
+              onPressed: profileUpdate,
+              child: const Text('Save Changes'),
             ),
-            const SizedBox(height: 32),
-            
-            // Reading Preferences
-            const Text(
-              'Reading Preferences',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const SizedBox(height: 20.0),
+            Text(
+              'Favorite Genres',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const Divider(),
-            const SizedBox(height: 8),
-            
-            // Genre preferences
-            const Text('Favorite Genres:'),
+            const SizedBox(height: 10.0),
             Wrap(
               spacing: 8.0,
-              children: genrePreferences.map((genre) {
-                return Chip(
-                  label: Text(genre),
-                  deleteIcon: const Icon(Icons.close, size: 18),
-                  onDeleted: () {
+              children:
+                  favoriteBookGenres
+                      .map((genre) => Chip(label: Text(genre)))
+                      .toList(),
+            ),
+            const SizedBox(height: 10.0),
+            ElevatedButton(
+              onPressed: favoriteGenre,
+              child: const Text('Add Favorite Genre'),
+            ),
+            const SizedBox(height: 20.0),
+            Text('Settings', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 10.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('App Notifications'),
+                Switch(
+                  value: appNotifications,
+                  onChanged: (bool value) {
                     setState(() {
-                      genrePreferences.remove(genre);
+                      appNotifications = value;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'App Notifications: ${value ? 'Enabled' : 'disabled'}',
+                          ),
+                        ),
+                      );
                     });
                   },
-                );
-              }).toList(),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Add Genre'),
-              onPressed: () {
-                // Show dialog to add new genre
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    final TextEditingController genreController = TextEditingController();
-                    return AlertDialog(
-                      title: const Text('Add Genre'),
-                      content: TextField(
-                        controller: genreController,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter a genre',
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            if (genreController.text.isNotEmpty &&
-                                !genrePreferences.contains(genreController.text)) {
-                              setState(() {
-                                genrePreferences.add(genreController.text);
-                              });
-                            }
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Add'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-            
-            // App Settings
-            const Text(
-              'App Settings',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Divider(),
-            const SizedBox(height: 8),
-            
-            // Dark Mode toggle
-            SwitchListTile(
-              title: const Text('Dark Mode'),
-              value: darkMode,
-              onChanged: (value) {
-                setState(() {
-                  darkMode = value;
-                });
-                // In a real app, you would apply theme changes here
-              },
-            ),
-            
-            // Notifications toggle
-            SwitchListTile(
-              title: const Text('Notifications'),
-              value: notifications,
-              onChanged: (value) {
-                setState(() {
-                  notifications = value;
-                });
-              },
-            ),
-            const SizedBox(height: 32),
-            
-            // Password Change Section
-            const Text(
+            const SizedBox(height: 10.0),
+            Text(
               'Change Password',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            const Divider(),
-            const SizedBox(height: 8),
-            
-            // Current password field
             TextField(
-              controller: _currentPasswordController,
-              decoration: const InputDecoration(
-                labelText: 'Current Password',
-                border: OutlineInputBorder(),
-              ),
+              controller: currentPassword,
               obscureText: true,
+              decoration: const InputDecoration(labelText: 'Current Password'),
             ),
-            const SizedBox(height: 16),
-            
-            // New password field
             TextField(
-              controller: _newPasswordController,
-              decoration: const InputDecoration(
-                labelText: 'New Password',
-                border: OutlineInputBorder(),
-              ),
+              controller: newPassword,
               obscureText: true,
+              decoration: const InputDecoration(labelText: 'New Password'),
             ),
-            const SizedBox(height: 16),
-            
-            // Confirm new password field
             TextField(
-              controller: _confirmPasswordController,
-              decoration: const InputDecoration(
-                labelText: 'Confirm New Password',
-                border: OutlineInputBorder(),
-              ),
+              controller: newPasswordConfirmation,
               obscureText: true,
+              decoration: const InputDecoration(labelText: 'Confrim Password'),
             ),
-            const SizedBox(height: 16),
-            
-            // Change Password button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _changePassword,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text('Change Password'),
-              ),
-            ),
-            const SizedBox(height: 32),
-            
-            // Logout and Delete Account buttons
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _logout,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text(
-                  'Log Out',
-                  style: TextStyle(color: Colors.white),
+            if (passwordErrorMessage.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  passwordErrorMessage,
+                  style: const TextStyle(color: Colors.red),
                 ),
               ),
+            const SizedBox(height: 10.0),
+            ElevatedButton(
+              onPressed: passwordChange,
+              child: const Text('Change Your Password'),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  // Show confirmation dialog before deleting account
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Account'),
-                      content: const Text(
-                        'Are you sure you want to delete your account? This action cannot be undone.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            // Handle account deletion
-                            Navigator.pop(context);
-                            // In a real app, you would delete the account and navigate to login
-                          },
-                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Delete Account',
-                  style: TextStyle(color: Colors.red),
-                ),
+            const SizedBox(height: 30.0),
+            ElevatedButton(onPressed: appLogout, child: const Text('Logout')),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: accountDelete,
+              child: const Text(
+                'Delete Account',
+                style: TextStyle(color: Colors.white),
               ),
             ),
-            const SizedBox(height: 32),
           ],
         ),
       ),
