@@ -261,6 +261,7 @@ class _DiscussionBoardsScreenState extends State<DiscussionScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Reading Discussions'),
         bottom: TabBar(
           controller: _tabController,

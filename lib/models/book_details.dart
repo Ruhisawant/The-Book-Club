@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/book_data.dart';
+import 'book_service.dart';
 
 class BookDetails extends StatefulWidget {
   const BookDetails({super.key});

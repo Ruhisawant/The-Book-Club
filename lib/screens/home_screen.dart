@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/book_data.dart';
-
+import '../models/book_service.dart';
+import '../models/ai_recommendations.dart';
+import 'library_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -11,6 +12,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final BookData _bookData = BookData();
   bool _isLoading = true;
+  bool _showRecommendations = true;
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           title: const Text('My Reading Lists'),
           bottom: const TabBar(
             tabs: [
@@ -48,14 +51,34 @@ class _HomeScreenState extends State<HomeScreen> {
               Tab(text: 'Finished'),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: Icon(_showRecommendations ? Icons.lightbulb : Icons.lightbulb_outline),
+              onPressed: () {
+                setState(() {
+                  _showRecommendations = !_showRecommendations;
+                });
+              },
+              tooltip: _showRecommendations ? 'Hide recommendations' : 'Show recommendations',
+            ),
+          ],
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
+            : Column(
                 children: [
-                  _buildBookList(_bookData.wantToReadBooks, 'want_to_read'),
-                  _buildBookList(_bookData.currentlyReadingBooks, 'currently_reading'),
-                  _buildBookList(_bookData.finishedBooks, 'finished'),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _buildBookList(_bookData.wantToReadBooks, 'want_to_read'),
+                        _buildBookList(_bookData.currentlyReadingBooks, 'currently_reading'),
+                        _buildBookList(_bookData.finishedBooks, 'finished'),
+                      ],
+                    ),
+                  ),
+                  
+                  if (_showRecommendations)
+                    RecommendationsSection(bookData: _bookData),
                 ],
               ),
       ),
@@ -75,6 +98,16 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontSize: 18, color: Colors.grey[700]),
             ),
             const SizedBox(height: 24),
+            // ElevatedButton.icon(
+            //   icon: const Icon(Icons.add),
+            //   label: const Text('Add Books'),
+            //   onPressed: () {
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (context) => LibraryScreen()),
+            //     );
+            //   },
+            // ),
           ],
         ),
       );
