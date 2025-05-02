@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/book_service.dart';
 import '../models/ai_recommendations.dart';
-import 'library_screen.dart';
+import '../navigation.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -98,16 +99,18 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontSize: 18, color: Colors.grey[700]),
             ),
             const SizedBox(height: 24),
-            // ElevatedButton.icon(
-            //   icon: const Icon(Icons.add),
-            //   label: const Text('Add Books'),
-            //   onPressed: () {
-            //     Navigator.push(
-            //       context,
-            //       MaterialPageRoute(builder: (context) => LibraryScreen()),
-            //     );
-            //   },
-            // ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Add Books'),
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const Navigation(currentIndex: 1),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       );

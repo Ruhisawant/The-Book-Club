@@ -20,8 +20,8 @@ class AiService {
   
   AiService._internal() {
     try {
-      _openAIApiKey = (dotenv.env['OPENAI_API_KEY'] ?? '').replaceAll("'", "").trim();
-      _openAIBaseUrl = (dotenv.env['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1').replaceAll("'", "").trim();
+      _openAIApiKey = (dotenv.env['OPENAI_API_KEY'] ?? '');
+      _openAIBaseUrl = (dotenv.env['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1');
           
       _isConfigured = _openAIApiKey.isNotEmpty;
       
@@ -84,7 +84,6 @@ class AiService {
           return recommendations;
         } catch (parseError) {
           debugPrint('Error parsing recommendations: $parseError');
-          // Fallback parsing for non-JSON responses
           return _parseRecommendationsFromText(content);
         }
       } else {

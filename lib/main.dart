@@ -6,20 +6,16 @@ import 'models/book_details.dart';
 import 'navigation.dart';
 
 void main() async {
-  // Ensure Flutter binding is initialized first
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load environment variables before anything else
+
   try {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: '.env');
     debugPrint('Environment variables loaded successfully');
   } catch (e) {
     debugPrint('Error loading environment variables: $e');
   }
   
-  // Initialize Firebase
   await Firebase.initializeApp();
-  
   runApp(const BookClubApp());
 }
 
@@ -35,7 +31,7 @@ class BookClubApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/home',
+      initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreen(),
         '/home': (context) => const Navigation(currentIndex: 0),
