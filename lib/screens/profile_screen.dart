@@ -167,7 +167,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         email: user!.email!,
         password: currentPassword.text,
       );
-      await user!.reauthenticate(appCredentials);
+      await user!.reauthenticateWithCredential(appCredentials);
       await user!.updatePassword(newPassword.text.trim());
       setState(() {
         passwordErrorMessage = '';
@@ -186,15 +186,15 @@ class ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> appLogout() async {
-    await _auth.signOut(); 
+    await _auth.signOut();
     if (mounted) {
-      Navigator.pushReplacement(context, '/'); // replace / with the navigation route for the login screen 
+      Navigator.pushReplacementNamed(context,'/',); // replace / with the navigation route for the login screen
     }
   }
 
-  Future<void> accountDelete() async{
+  Future<void> accountDelete() async {
     return showDialog(
-      context: context, 
+      context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Delete Account'),
@@ -205,25 +205,159 @@ class ProfileScreenState extends State<ProfileScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-            ), 
+            ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Delete Account'),
               onPressed: () async {
                 try {
                   await user?.delete();
-                  if (mounted){
-                    Navigator.pushReplacement(context, '/'); //Replace with the navigation route for the login screen
+                  if (mounted) {
+                    Navigator.pushReplacementNamed(context,'/'); //Replace with the navigation route for the login screen
                   }
                 } on FirebaseAuthException catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Account deletion failed: ${e.message}')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Account deletion failed: ${e.message}'),
+                    ),
+                  );
                 }
               },
-            )
+            ),
           ],
-        ); 
-      }
-    ); 
+        );
+      },
+    );
   }
-  
+
+  @override
+  Widget build(BuildContext context) {
+    newUsername.text = username ?? '';
+    newEmail.text = email ?? '';
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Account Information',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10.0),
+            TextField(
+              controller: newUsername,
+              decoration: const InputDecoration(labelText: 'Username'),
+            ),
+            TextField(
+              controller: newEmail,
+              decoration: const InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            if (address != null)
+              TextField(
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Address',
+                  hintText: address,
+                ),
+              ),
+            const SizedBox(height: 20.0),
+            ElevatedButton(
+              onPressed: profileUpdate,
+              child: const Text('Save Changes'),
+            ),
+            const SizedBox(height: 20.0),
+            Text(
+              'Favorite Genres',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10.0),
+            Wrap(
+              spacing: 8.0,
+              children:
+                  favoriteBookGenres
+                      .map((genre) => Chip(label: Text(genre)))
+                      .toList(),
+            ),
+            const SizedBox(height: 10.0),
+            ElevatedButton(
+              onPressed: favoriteGenre,
+              child: const Text('Add Favorite Genre'),
+            ),
+            const SizedBox(height: 20.0),
+            Text('Settings', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 10.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('App Notifications'),
+                Switch(
+                  value: appNotifications,
+                  onChanged: (bool value) {
+                    setState(() {
+                      appNotifications = value;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'App Notifications: ${value ? 'Enabled' : 'disabled'}',
+                          ),
+                        ),
+                      );
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10.0),
+            Text(
+              'Change Password',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            TextField(
+              controller: currentPassword,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Current Password'),
+            ),
+            TextField(
+              controller: newPassword,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'New Password'),
+            ),
+            TextField(
+              controller: newPasswordConfirmation,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Confrim Password'),
+            ),
+            if (passwordErrorMessage.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  passwordErrorMessage,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            const SizedBox(height: 10.0),
+            ElevatedButton(
+              onPressed: passwordChange,
+              child: const Text('Change Your Password'),
+            ),
+            const SizedBox(height: 30.0),
+            ElevatedButton(onPressed: appLogout, child: const Text('Logout')),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: accountDelete,
+              child: const Text(
+                'Delete Account',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
