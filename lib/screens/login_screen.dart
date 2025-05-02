@@ -62,79 +62,98 @@ class LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(loggedIn ? 'Login' : 'Create Account')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                loggedIn ? 'Welcome Back' : 'Make New Account',
-                style: Theme.of(context).textTheme.displayMedium,
-              ),
-              SizedBox(height: 20),
-              if (errorMessage.isNotEmpty)
-                Text(errorMessage, style: TextStyle(color: Colors.red)),
-              TextField(
-                controller: emailControl,
-                decoration: InputDecoration(labelText: 'Email'),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: passwordControl,
-                decoration: InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-              SizedBox(height: 12),
-              if (!loggedIn)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Select Your Favorite Genre'),
-                    SizedBox(height: 10),
-                    DropdownButton<String>(
-                      value: genreSelect,
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          genreSelect = newValue!;
-                        });
-                      },
-                      items:
-                          genres
-                              .map(
-                                (genre) => DropdownMenuItem(
-                                  value: genre,
-                                  child: Text(genre),
-                                ),
-                              )
-                              .toList(),
-                    ),
-                  ],
+      appBar: AppBar(title: Text(loggedIn ? 'Login' : 'Create a New Account')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.book,
+                  size: 80,
+                  color: Theme.of(context).primaryColor,
                 ),
-              SizedBox(height: 25),
-              ElevatedButton(
-                onPressed: authenticationHandler,
-                child: Text(loggedIn ? 'Login' : 'Sign Up'),
-              ),
-              SizedBox(height: 15),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    loggedIn = !loggedIn;
-                    errorMessage = '';
-                    emailControl.clear();
-                    passwordControl.clear();
-                  });
-                },
-                child: Text(
-                  loggedIn
-                      ? "Make Your Account"
-                      : "You Already Have an Account",
+                Text(
+                  'BookClub',
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(height: 30),
+                if (errorMessage.isNotEmpty)
+                  Text(errorMessage, style: TextStyle(color: Colors.red)),
+                TextField(
+                  controller: emailControl,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                SizedBox(height: 12),
+                TextField(
+                  controller: passwordControl,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  obscureText: true,
+                ),
+                SizedBox(height: 12),
+                if (!loggedIn)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Select Your Favorite Genre'),
+                      SizedBox(height: 10),
+                      DropdownButton<String>(
+                        value: genreSelect,
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            genreSelect = newValue!;
+                          });
+                        },
+                        items:
+                            genres
+                                .map(
+                                  (genre) => DropdownMenuItem(
+                                    value: genre,
+                                    child: Text(genre),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                    ],
+                  ),
+                SizedBox(height: 25),
+                ElevatedButton(
+                  onPressed: authenticationHandler,
+                  child: Text(loggedIn ? 'Login' : 'Sign Up'),
+                ),
+                SizedBox(height: 15),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      loggedIn = !loggedIn;
+                      errorMessage = '';
+                      emailControl.clear();
+                      passwordControl.clear();
+                    });
+                  },
+                  child: Text(
+                    loggedIn
+                        ? "Make Your Account"
+                        : "You Already Have an Account",
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
