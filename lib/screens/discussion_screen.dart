@@ -14,39 +14,23 @@ class _DiscussionScreenState extends State<DiscussionScreen>
   bool _isLoading = true;
   String _selectedCategory = 'All';
   
-  final List<String> _categories = [
-    'All',
-    'Fiction',
-    'Non-fiction',
-    'Science Fiction',
-    'Fantasy',
-    'Mystery',
-    'Romance',
-    'Horror',
-    'Thriller',
-    'Biography',
-    'History',
-  ];
+  final List<String> _categories = DiscussionUtils.getCategories();
 
   final List<DiscussionPost> _allPosts = [];
   final List<DiscussionPost> _myPosts = [];
   List<DiscussionPost> _filteredPosts = [];
-
-  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
-    _searchController.addListener(_filterPosts);
     _loadDiscussions();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -67,102 +51,8 @@ class _DiscussionScreenState extends State<DiscussionScreen>
       // Simulate loading data from a service
       await Future.delayed(const Duration(seconds: 1));
       
-      // Sample comments for posts
-      final sampleComments = [
-        Comment(
-          id: 'c1',
-          authorId: 'user5',
-          authorName: 'SciFiEnthusiast',
-          content: 'The ending completely blew my mind! I didn\'t see it coming at all.',
-          created: DateTime.now().subtract(const Duration(hours: 2)),
-          likes: 7,
-        ),
-        Comment(
-          id: 'c2',
-          authorId: 'user6',
-          authorName: 'BookDragon',
-          content: 'I loved how the characters developed throughout the story. Amazing character arcs!',
-          created: DateTime.now().subtract(const Duration(hours: 1)),
-          likes: 4,
-        ),
-        Comment(
-          id: 'c3',
-          authorId: 'user7',
-          authorName: 'SpaceExplorer',
-          content: 'The science was surprisingly accurate too. I appreciated the research that went into it.',
-          created: DateTime.now().subtract(const Duration(minutes: 30)),
-          likes: 2,
-        ),
-      ];
-      
-      // Sample data
-      final samplePosts = [
-        DiscussionPost(
-          id: '1',
-          authorId: 'user1',
-          authorName: 'BookLover42',
-          title: 'What did you think of the ending of Project Hail Mary?',
-          content:
-              'I just finished reading and I have so many thoughts! No spoilers in this post, but feel free to discuss in the comments.',
-          created: DateTime.now().subtract(const Duration(hours: 3)),
-          likes: 24,
-          comments: 3,
-          tags: ['Science Fiction', 'Andy Weir', 'Project Hail Mary'],
-          commentsList: sampleComments,
-        ),
-        DiscussionPost(
-          id: '2',
-          authorId: 'user2',
-          authorName: 'LiteraryExplorer',
-          title: 'Best fantasy series for someone new to the genre?',
-          content:
-              'I\'ve mostly read literary fiction but want to try fantasy. Looking for recommendations that aren\'t too dense or complex for a beginner.',
-          created: DateTime.now().subtract(const Duration(hours: 5)),
-          likes: 36,
-          comments: 42,
-          tags: ['Fantasy', 'Recommendations', 'Beginner'],
-          commentsList: [
-            Comment(
-              id: 'c4',
-              authorId: 'user8',
-              authorName: 'FantasyReader',
-              content: 'The Mistborn series by Brandon Sanderson is a great entry point!',
-              created: DateTime.now().subtract(const Duration(hours: 4)),
-              likes: 15,
-            ),
-            Comment(
-              id: 'c5',
-              authorId: 'user9',
-              authorName: 'BookWizard',
-              content: 'Try "The Name of the Wind" by Patrick Rothfuss. It\'s beautifully written.',
-              created: DateTime.now().subtract(const Duration(hours: 3)),
-              likes: 10,
-            ),
-          ],
-        ),
-        DiscussionPost(
-          id: '3',
-          authorId: 'user3',
-          authorName: 'MysteryFan',
-          title: 'Classic vs. Modern Mystery Novels: What\'s your preference?',
-          content:
-              'Do you prefer Agatha Christie style mysteries or more modern psychological thrillers? I\'m curious about what people enjoy about each style.',
-          created: DateTime.now().subtract(const Duration(days: 1)),
-          likes: 18,
-          comments: 23,
-          tags: ['Mystery', 'Classics', 'Modern', 'Discussion'],
-          commentsList: [
-            Comment(
-              id: 'c6',
-              authorId: 'user10',
-              authorName: 'DetectiveBookworm',
-              content: 'I love classic mysteries! The intricate plotting in Christie\'s works is unmatched.',
-              created: DateTime.now().subtract(const Duration(hours: 20)),
-              likes: 8,
-            ),
-          ],
-        ),
-      ];
+      // Get sample posts from model class
+      final samplePosts = DiscussionPost.getSamplePosts();
       
       setState(() {
         _allPosts.clear();
@@ -188,20 +78,11 @@ class _DiscussionScreenState extends State<DiscussionScreen>
     final currentList = _tabController.index == 0 ? _allPosts : _myPosts;
     
     setState(() {
-      final query = _searchController.text.toLowerCase();
-      _filteredPosts = currentList.where((post) {
-        // Filter by category
-        if (_selectedCategory != 'All' && !post.tags.contains(_selectedCategory)) {
-          return false;
-        }
-        
-        // Filter by search query
-        return query.isEmpty ||
-            post.title.toLowerCase().contains(query) ||
-            post.content.toLowerCase().contains(query) ||
-            post.tags.any((tag) => tag.toLowerCase().contains(query)) ||
-            post.authorName.toLowerCase().contains(query);
-      }).toList();
+      // Use the filter method from DiscussionPost
+      _filteredPosts = DiscussionPost.filterPosts(
+        posts: currentList,
+        categoryFilter: _selectedCategory,
+      );
     });
   }
 
@@ -210,19 +91,6 @@ class _DiscussionScreenState extends State<DiscussionScreen>
       _selectedCategory = category;
     });
     _filterPosts();
-  }
-
-  String _getTimeAgo(DateTime dateTime) {
-    final difference = DateTime.now().difference(dateTime);
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
   }
 
   void _navigateToPostDetails(DiscussionPost post) {
@@ -255,7 +123,8 @@ class _DiscussionScreenState extends State<DiscussionScreen>
 
   void _toggleBookmark(DiscussionPost post) {
     setState(() {
-      post.isBookmarked = !post.isBookmarked;
+      // Use the model method instead of direct property manipulation
+      post.toggleBookmark();
     });
     
     ScaffoldMessenger.of(context).showSnackBar(
@@ -270,8 +139,8 @@ class _DiscussionScreenState extends State<DiscussionScreen>
 
   void _toggleLike(DiscussionPost post) {
     setState(() {
-      // Toggle like status and update count
-      post.likes += 1;
+      // Use the model method
+      post.like();
     });
     
     ScaffoldMessenger.of(context).showSnackBar(
@@ -306,7 +175,8 @@ class _DiscussionScreenState extends State<DiscussionScreen>
                 
                 // My Discussions Tab
                 _myPosts.isEmpty
-                    ? _buildEmptyState(
+                    ? DiscussionUtils.buildEmptyState(
+                        context: context,
                         icon: Icons.forum_outlined,
                         message: 'You haven\'t participated in any discussions yet',
                         buttonText: 'Start a Discussion',
@@ -323,61 +193,9 @@ class _DiscussionScreenState extends State<DiscussionScreen>
     );
   }
 
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String message,
-    required String buttonText,
-    required VoidCallback onPressed,
-  }) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 60,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: onPressed,
-            child: Text(buttonText),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildDiscussionsTab(List<DiscussionPost> posts) {
     return Column(
       children: [
-        // Search bar
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search discussions',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              filled: true,
-              fillColor: Colors.grey[50],
-            ),
-          ),
-        ),
-        
         // Category selector
         SizedBox(
           height: 48,
@@ -408,7 +226,8 @@ class _DiscussionScreenState extends State<DiscussionScreen>
         // Discussion posts
         Expanded(
           child: posts.isEmpty
-              ? _buildEmptyState(
+              ? DiscussionUtils.buildEmptyState(
+                  context: context,
                   icon: Icons.forum_outlined,
                   message: 'No discussions found matching your criteria',
                   buttonText: 'Create Discussion',
@@ -442,39 +261,8 @@ class _DiscussionScreenState extends State<DiscussionScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Author info row
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    child: Text(
-                      post.authorName[0],
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          post.authorName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          _getTimeAgo(post.created),
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              // Author info row - using utility method
+              DiscussionUtils.buildAuthorRow(context, post.authorName, post.created),
               
               const SizedBox(height: 16),
               
@@ -496,22 +284,11 @@ class _DiscussionScreenState extends State<DiscussionScreen>
               
               const SizedBox(height: 16),
               
-              // Tags
+              // Tags - using utility method
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: post.tags.map((tag) {
-                  return Chip(
-                    label: Text(
-                      tag,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  );
-                }).toList(),
+                children: DiscussionUtils.buildTagChips(context, post.tags),
               ),
               
               const SizedBox(height: 16),
@@ -585,7 +362,6 @@ class _DiscussionScreenState extends State<DiscussionScreen>
   }
 }
 
-// New screens for implementing the requested features
 class DiscussionDetailScreen extends StatefulWidget {
   final DiscussionPost post;
   
@@ -609,17 +385,16 @@ class _DiscussionDetailScreenState extends State<DiscussionDetailScreen> {
       return;
     }
     
-    final newComment = Comment(
-      id: 'c${DateTime.now().millisecondsSinceEpoch}',
-      authorId: 'currentUser', // In a real app, this would be the current user's ID
-      authorName: 'You', // In a real app, this would be the current user's name
+    // Create a new comment using the factory method
+    final newComment = Comment.createNew(
       content: _commentController.text,
-      created: DateTime.now(),
+      authorId: 'currentUser',
+      authorName: 'You',
     );
     
     setState(() {
-      widget.post.commentsList.add(newComment);
-      widget.post.comments = widget.post.commentsList.length;
+      // Add the comment to the post using the model method
+      widget.post.addComment(newComment);
       _commentController.clear();
     });
     
@@ -634,21 +409,9 @@ class _DiscussionDetailScreenState extends State<DiscussionDetailScreen> {
   
   void _likeComment(Comment comment) {
     setState(() {
-      comment.likes += 1;
+      // Use the model method
+      comment.like();
     });
-  }
-  
-  String _getTimeAgo(DateTime dateTime) {
-    final difference = DateTime.now().difference(dateTime);
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
   }
   
   @override
@@ -666,39 +429,8 @@ class _DiscussionDetailScreenState extends State<DiscussionDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Author info
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        child: Text(
-                          widget.post.authorName[0],
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.post.authorName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              _getTimeAgo(widget.post.created),
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Author info - using utility method
+                  DiscussionUtils.buildAuthorRow(context, widget.post.authorName, widget.post.created),
                   
                   const SizedBox(height: 24),
                   
@@ -724,16 +456,11 @@ class _DiscussionDetailScreenState extends State<DiscussionDetailScreen> {
                   
                   const SizedBox(height: 16),
                   
-                  // Tags
+                  // Tags - using utility method
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: widget.post.tags.map((tag) {
-                      return Chip(
-                        label: Text(tag),
-                        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                      );
-                    }).toList(),
+                    children: DiscussionUtils.buildTagChips(context, widget.post.tags),
                   ),
                   
                   const SizedBox(height: 16),
@@ -745,7 +472,8 @@ class _DiscussionDetailScreenState extends State<DiscussionDetailScreen> {
                       OutlinedButton.icon(
                         onPressed: () {
                           setState(() {
-                            widget.post.likes += 1;
+                            // Use the model method
+                            widget.post.like();
                           });
                         },
                         icon: const Icon(Icons.thumb_up_outlined),
@@ -758,7 +486,8 @@ class _DiscussionDetailScreenState extends State<DiscussionDetailScreen> {
                       OutlinedButton.icon(
                         onPressed: () {
                           setState(() {
-                            widget.post.isBookmarked = !widget.post.isBookmarked;
+                            // Use the model method
+                            widget.post.toggleBookmark();
                           });
                         },
                         icon: Icon(
@@ -813,7 +542,7 @@ class _DiscussionDetailScreenState extends State<DiscussionDetailScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Comment author info
+                                    // Comment author info - similar to author row but simpler
                                     Row(
                                       children: [
                                         CircleAvatar(
@@ -837,7 +566,7 @@ class _DiscussionDetailScreenState extends State<DiscussionDetailScreen> {
                                               ),
                                             ),
                                             Text(
-                                              _getTimeAgo(comment.created),
+                                              DiscussionUtils.getTimeAgo(comment.created),
                                               style: TextStyle(
                                                 color: Colors.grey[600],
                                                 fontSize: 12,
@@ -940,26 +669,8 @@ class _CreateDiscussionScreenState extends State<CreateDiscussionScreen> {
   final TextEditingController _contentController = TextEditingController();
   final List<String> _selectedTags = [];
   
-  final List<String> _availableTags = [
-    'Fiction',
-    'Non-fiction',
-    'Science Fiction',
-    'Fantasy',
-    'Mystery',
-    'Romance',
-    'Horror',
-    'Thriller',
-    'Biography',
-    'History',
-    'Book Club',
-    'Recommendations',
-    'Discussion',
-    'Review',
-    'Series',
-    'Classic',
-    'Modern',
-    'Beginner',
-  ];
+  // Get available tags from utility class
+  final List<String> _availableTags = DiscussionUtils.getAvailableTags();
   
   @override
   void dispose() {
@@ -1008,18 +719,13 @@ class _CreateDiscussionScreenState extends State<CreateDiscussionScreen> {
       return;
     }
     
-    // Create new discussion post
-    final newPost = DiscussionPost(
-      id: 'post-${DateTime.now().millisecondsSinceEpoch}',
-      authorId: 'currentUser', // In a real app, this would be the current user's ID
-      authorName: 'You', // In a real app, this would be the current user's name
+    // Create new discussion post using factory method
+    final newPost = DiscussionPost.createNew(
       title: _titleController.text,
       content: _contentController.text,
-      created: DateTime.now(),
-      likes: 0,
-      comments: 0,
       tags: List.from(_selectedTags),
-      commentsList: [],
+      authorId: 'currentUser', // In a real app, this would be the current user's ID
+      authorName: 'You', // In a real app, this would be the current user's name
     );
     
     // Call the callback

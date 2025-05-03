@@ -42,7 +42,7 @@ class BookClubApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Book App',
-      initialRoute: '/',
+      initialRoute: '/discussion',
       routes: {
         '/': (context) => const LoginScreen(),
         '/home': (context) => const Navigation(currentIndex: 0),
