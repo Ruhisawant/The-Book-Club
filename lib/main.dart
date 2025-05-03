@@ -18,16 +18,12 @@ void testEnvVariables() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize dotenv with defaults
   try {
     await dotenv.load(fileName: '.env');
     debugPrint('Environment variables loaded successfully');
     isEnvLoaded = true;
   } catch (e) {
     debugPrint('Error loading environment variables: $e');
-    // Don't set isEnvLoaded to true
-    
-    // Set defaults manually to avoid "NotInitializedError"
     dotenv.testLoad(fileInput: '''
       COHERE_API_KEY=
       COHERE_BASE_URL=https://api.cohere.ai
@@ -50,7 +46,7 @@ class BookClubApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/home',
+      initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreen(),
         '/home': (context) => const Navigation(currentIndex: 0),

@@ -83,16 +83,18 @@ class ProfileScreenState extends State<ProfileScreen> {
           });
         }
         if (email != newEmail.text.trim()) {
-          await user!.updateEmail(newEmail.text.trim());
+          await user!.verifyBeforeUpdateEmail(newEmail.text.trim());
           setState(() {
             email = newEmail.text.trim();
           });
+          if (!mounted) return;
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Email Updated')));
         }
         if (updates.isNotEmpty) {
           await firestore.collection('users').doc(user!.uid).update(updates);
+          if (!mounted) return;
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Profile Updated')));
@@ -125,6 +127,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       await firestore.collection('users').doc(user!.uid).update({
         'favoriteBookGenres': favoriteBookGenres,
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Added $selectedGenre to favorite genres.')),
       );
@@ -138,6 +141,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     await firestore.collection('users').doc(user!.uid).update({
       'favoriteBookGenres': favoriteBookGenres,
     });
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Removed $genre from favorite genres.')),
     );
@@ -190,11 +194,13 @@ class ProfileScreenState extends State<ProfileScreen> {
   Future<void> signOut() async {
     await _auth.signOut();
     if (mounted) {
-      Navigator.pushReplacementNamed(context, '/');  // Fixed navigation error
+      Navigator.pushReplacementNamed(context, '/');
     }
   }
 
   Future<void> accountDeletion() async {
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     return showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -213,18 +219,19 @@ class ProfileScreenState extends State<ProfileScreen> {
               child: const Text('Delete Account'),
               onPressed: () async {
                 try {
-                  // First delete user data from Firestore
                   await firestore.collection('users').doc(user!.uid).delete();
-                  // Then delete the auth account
                   await user!.delete();
+
                   if (mounted) {
-                    Navigator.pushReplacementNamed(context, '/');  // Fixed navigation error
+                    navigator.pushReplacementNamed('/');
                   }
                 } on FirebaseAuthException catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Account Deletion Failed: ${e.message}')),
-                  );
-                  Navigator.of(context).pop();  // Close dialog on error
+                  if (mounted) {
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(content: Text('Account Deletion Failed: ${e.message}')),
+                    );
+                    navigator.pop();
+                  }
                 }
               },
             ),
@@ -304,7 +311,7 @@ class ProfileScreenState extends State<ProfileScreen> {
           elevation: 2,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,  // Center the content
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[Icon(icon), const SizedBox(width: 8.0)],
@@ -325,6 +332,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Profile'),
         centerTitle: true,
         elevation: 0,
@@ -338,12 +346,12 @@ class ProfileScreenState extends State<ProfileScreen> {
               sectionTitle('Account Information'),
               inputField(
                 controller: newUsername,
-                label: 'Username',  // Fixed label text
+                label: 'Username',
                 icon: Icons.person,
               ),
               inputField(
                 controller: newEmail,
-                label: 'Email',  // Fixed label text
+                label: 'Email',
                 icon: Icons.email,
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -356,7 +364,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                 textColor: Colors.white,
               ),
               sectionTitle('Favorite Genres'),
-              favoriteBookGenres.isEmpty  // FIXED: Corrected the logical condition
+              favoriteBookGenres.isEmpty
                   ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -451,21 +459,24 @@ class ProfileScreenState extends State<ProfileScreen> {
                                     ? () => addGenre(dropDownNumber)
                                     : null,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: theme.secondary,
-                              foregroundColor: theme.onSecondary,
+                              backgroundColor: theme.primary,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Icon(Icons.add),
+                            child: const Icon(
+                              Icons.add, 
+                              color: Colors.white,
+                              size: 25,
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-              ] else if (favoriteBookGenres.isNotEmpty) ...[  // Only show this when they have genres but can't add more
+              ] else if (favoriteBookGenres.isNotEmpty) ...[
                 Container(
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
