@@ -9,21 +9,12 @@ class AiService {
   late final String _cohereBaseUrl;
   late final String _cohereApiKey;
   late final bool _isConfigured;
-  
-  // Track API quota/rate limit issues
-  bool _hasQuotaExceeded = false;
-  
-  // Add a client with proper timeout
   final http.Client _client = http.Client();
-  
-  // Add request cancellation support
-  bool _isRequestCancelled = false;
-  
-  // Getter for configuration status
-  bool get isConfigured => _isConfigured && !_hasQuotaExceeded;
-  
-  // Singleton pattern
   static final AiService _instance = AiService._internal();
+
+  bool _hasQuotaExceeded = false;
+  bool _isRequestCancelled = false;
+  bool get isConfigured => _isConfigured && !_hasQuotaExceeded;
   
   factory AiService() {
     return _instance;
