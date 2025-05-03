@@ -33,24 +33,24 @@ class AiService {
     try {
       // Check if environment was loaded properly
       if (isEnvLoaded) {
-        _cohereApiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
-        _cohereBaseUrl = dotenv.env['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1';
+        _cohereApiKey = dotenv.env['COHERE_API_KEY'] ?? '';
+        _cohereBaseUrl = dotenv.env['COHERE_BASE_URL'] ?? 'https://api.cohere.ai';
       } else {
         // Default to empty values if environment isn't loaded
         _cohereApiKey = '';
-        _cohereBaseUrl = 'https://api.openai.com/v1';
+        _cohereBaseUrl = 'https://api.cohere.ai';
         debugPrint('Using default AI service configuration (no API key)');
       }
           
       _isConfigured = _cohereApiKey.isNotEmpty;
       
       if (!_isConfigured) {
-        debugPrint('Warning: OpenAI API key not found or empty. AI recommendations will be disabled.');
+        debugPrint('Warning: Cohere API key not found or empty. AI recommendations will be disabled.');
       }
     } catch (e) {
       debugPrint('Error initializing AI service: $e');
       _cohereApiKey = '';
-      _cohereBaseUrl = 'https://api.openai.com/v1';
+      _cohereBaseUrl = 'https://api.cohere.ai';
       _isConfigured = false;
     }
   }
@@ -64,38 +64,30 @@ class AiService {
     // Reset cancellation flag
     _isRequestCancelled = false;
     
-    // If we've already hit quota limits, go straight to fallback
+    // If we've already hit quota limits, return empty list
     if (_hasQuotaExceeded) {
-      debugPrint('Using local recommendations due to previous quota issues');
-      return getLocalRecommendations(favoriteGenres: favoriteGenres);
+      debugPrint('Using empty recommendations due to previous quota issues');
+      return [];
     }
     
     try {
       if (!_isConfigured || _cohereApiKey.isEmpty) {
-        throw Exception('OpenAI API key not configured');
+        throw Exception('Cohere API key not configured');
       }
       
-      // Move this to a separate method to improve readability
-      final request = http.Request('POST', Uri.parse('$_cohereBaseUrl/chat/completions'))
+      // Prepare request for Cohere's chat API
+      final request = http.Request('POST', Uri.parse('$_cohereBaseUrl/v1/chat'))
         ..headers.addAll({
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_cohereApiKey',
         })
         ..body = jsonEncode({
-          'model': 'gpt-3.5-turbo',
-          'messages': [
-            {
-              'role': 'system', 
-              'content': 'You are a helpful book recommendation assistant. Return responses in JSON format.'
-            },
-            {
-              'role': 'user',
-              'content': _createRecommendationPrompt(favoriteGenres, readBooks, count),
-            }
-          ],
+          'message': _createRecommendationPrompt(favoriteGenres, readBooks, count),
+          'model': 'command',
           'temperature': 0.7,
           'max_tokens': 800,
-          'response_format': {'type': 'json_object'},
+          'preamble': 'You are a helpful book recommendation assistant. Return responses in JSON format.',
+          'chat_history': []
         });
       
       // Use a stream response to handle timeouts better
@@ -106,31 +98,41 @@ class AiService {
       
       // Check if request was cancelled during execution
       if (_isRequestCancelled) {
-        return getLocalRecommendations(favoriteGenres: favoriteGenres);
+        return [];
       }
 
       final response = await http.Response.fromStream(streamedResponse);
 
       // Check for rate limiting or quota issues
       if (response.statusCode == 429) {
-        debugPrint('OpenAI API quota exceeded or rate limited');
+        debugPrint('Cohere API quota exceeded or rate limited');
         // Set the flag so we don't keep trying
         _hasQuotaExceeded = true;
-        // Use local recommendations instead
-        return getLocalRecommendations(favoriteGenres: favoriteGenres);
+        return [];
       }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final content = data['choices'][0]['message']['content'];
+        final content = data['text'] ?? '';
         
         try {
-          final recommendationsJson = jsonDecode(content);
-          final recommendations = (recommendationsJson['recommendations'] as List)
-              .map((item) => BookRecommendation.fromJson(item))
-              .toList();
+          // Extract JSON from response
+          final jsonPattern = RegExp(r'\{[\s\S]*\}');
+          final match = jsonPattern.firstMatch(content);
           
-          return recommendations;
+          if (match != null) {
+            final jsonContent = match.group(0);
+            final recommendationsJson = jsonDecode(jsonContent!);
+            
+            final recommendations = (recommendationsJson['recommendations'] as List)
+                .map((item) => BookRecommendation.fromJson(item))
+                .toList();
+            
+            return recommendations;
+          } else {
+            debugPrint('Could not find JSON in response');
+            return _parseRecommendationsFromText(content);
+          }
         } catch (parseError) {
           debugPrint('Error parsing recommendations: $parseError');
           return _parseRecommendationsFromText(content);
@@ -140,12 +142,11 @@ class AiService {
         throw Exception('Failed to generate recommendations: ${response.statusCode}');
       }
     } on TimeoutException {
-      debugPrint('Request timed out, using local recommendations');
-      return getLocalRecommendations(favoriteGenres: favoriteGenres);
+      debugPrint('Request timed out, returning empty recommendations');
+      return [];
     } catch (e) {
       debugPrint('Error generating recommendations: $e');
-      // If we hit any error, fall back to local recommendations
-      return getLocalRecommendations(favoriteGenres: favoriteGenres);
+      return [];
     }
   }
 
@@ -200,98 +201,6 @@ class AiService {
     }
     
     return recommendations;
-  }
-
-  // Generate fallback recommendations when API is not available
-  Future<List<BookRecommendation>> getLocalRecommendations({
-    required List<String> favoriteGenres,
-  }) async {
-    // Create some static recommendations based on popular books
-    final allRecommendations = [
-      BookRecommendation(
-        title: "Project Hail Mary",
-        author: "Andy Weir",
-        genre: "Science Fiction",
-        why: "A thrilling science fiction adventure with problem-solving and humor",
-      ),
-      BookRecommendation(
-        title: "Atomic Habits",
-        author: "James Clear",
-        genre: "Self-Help",
-        why: "Practical strategies for building good habits and breaking bad ones",
-      ),
-      BookRecommendation(
-        title: "The Midnight Library",
-        author: "Matt Haig",
-        genre: "Fiction",
-        why: "A thought-provoking story about the choices that shape our lives",
-      ),
-      BookRecommendation(
-        title: "The Thursday Murder Club",
-        author: "Richard Osman",
-        genre: "Mystery",
-        why: "A charming murder mystery with witty characters and clever plot twists",
-      ),
-      BookRecommendation(
-        title: "Educated",
-        author: "Tara Westover",
-        genre: "Memoir",
-        why: "A powerful memoir about the struggle for self-invention",
-      ),
-      BookRecommendation(
-        title: "Dune",
-        author: "Frank Herbert",
-        genre: "Science Fiction",
-        why: "A classic of science fiction with complex world-building",
-      ),
-      BookRecommendation(
-        title: "The Silent Patient",
-        author: "Alex Michaelides",
-        genre: "Thriller",
-        why: "A psychological thriller with a shocking twist",
-      ),
-      BookRecommendation(
-        title: "A Gentleman in Moscow",
-        author: "Amor Towles",
-        genre: "Historical Fiction",
-        why: "A beautifully written story of a man confined to a luxury hotel",
-      ),
-      BookRecommendation(
-        title: "The Vanishing Half",
-        author: "Brit Bennett",
-        genre: "Literary Fiction",
-        why: "A thought-provoking exploration of race, identity, and sisterhood",
-      ),
-      BookRecommendation(
-        title: "Where the Crawdads Sing",
-        author: "Delia Owens",
-        genre: "Mystery",
-        why: "A beautiful story combining nature, mystery, and coming-of-age",
-      ),
-    ];
-    
-    // Filter and sort recommendations based on user's favorite genres
-    final filteredBooks = allRecommendations.where((book) {
-      final genreLower = book.genre.toLowerCase();
-      return favoriteGenres.isEmpty || 
-             favoriteGenres.any((genre) => 
-                genreLower.contains(genre.toLowerCase()));
-    }).toList();
-    
-    // If we have matching recommendations, return those first
-    final result = [...filteredBooks];
-    
-    // Add remaining books if we don't have enough recommendations
-    if (result.length < 5) {
-      final remainingBooks = allRecommendations
-          .where((book) => !result.contains(book))
-          .take(5 - result.length)
-          .toList();
-      result.addAll(remainingBooks);
-    }
-    
-    // Take only the top 5
-    return result.take(5).toList();
   }
   
   // Reset quota exceeded flag for testing

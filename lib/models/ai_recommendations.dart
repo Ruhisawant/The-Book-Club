@@ -19,7 +19,6 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
   bool _isLoading = false;
   List<BookRecommendation> _recommendations = [];
   String? _error;
-  bool _usingLocalRecommendations = false;
 
   @override
   void initState() {
@@ -40,6 +39,15 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
   }
 
   Future<void> _loadRecommendations() async {
+    // Don't load recommendations if there are no books
+    if (widget.bookData.allBooks.isEmpty) {
+      setState(() {
+        _recommendations = [];
+        _error = 'Add some books to get personalized recommendations';
+      });
+      return;
+    }
+    
     setState(() {
       _isLoading = true;
       _error = null;
@@ -49,78 +57,49 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
       // Get favorite genres from user's reading list
       final favoriteGenres = _getFavoriteGenres();
       
-      List<BookRecommendation> recommendations;
+      // Get books user has read
+      final readBooks = widget.bookData.finishedBooks
+          .map((book) => '${book.title} by ${book.author}')
+          .toList();
       
       // Check if API key is configured and no quota issues
       if (_aiService.isConfigured) {
-        // Get books user has read
-        final readBooks = widget.bookData.finishedBooks
-            .map((book) => '${book.title} by ${book.author}')
-            .toList();
-
         try {
-          // Generate recommendations using OpenAI
-          recommendations = await _aiService.generateBookRecommendations(
+          // Generate recommendations using Cohere
+          final recommendations = await _aiService.generateBookRecommendations(
             favoriteGenres: favoriteGenres,
             readBooks: readBooks,
           );
           
-          // Check if we got local recommendations instead
-          _usingLocalRecommendations = !_aiService.isConfigured;
+          setState(() {
+            _recommendations = recommendations;
+            _isLoading = false;
+            _error = recommendations.isEmpty ? 'No recommendations available' : null;
+          });
         } catch (e) {
-          debugPrint('Error with OpenAI recommendations: $e');
-          // If API call fails, use local recommendations
-          recommendations = await _aiService.getLocalRecommendations(
-            favoriteGenres: favoriteGenres,
-          );
-          _usingLocalRecommendations = true;
+          debugPrint('Error with Cohere recommendations: $e');
+          setState(() {
+            _error = 'Could not generate recommendations';
+            _isLoading = false;
+          });
         }
       } else {
-        // Use local fallback if API key is not available or quota exceeded
-        recommendations = await _aiService.getLocalRecommendations(
-          favoriteGenres: favoriteGenres,
-        );
-        _usingLocalRecommendations = true;
+        setState(() {
+          _error = 'AI recommendations require an API key';
+          _isLoading = false;
+        });
       }
-
-      setState(() {
-        _recommendations = recommendations;
-        _isLoading = false;
-        _error = null; // Clear any previous errors
-      });
     } catch (e) {
       setState(() {
         _error = 'Could not load recommendations';
         _isLoading = false;
       });
       debugPrint('Error loading recommendations: $e');
-      
-      // Try local recommendations as fallback even if other approaches fail
-      _loadLocalRecommendationsFallback();
-    }
-  }
-  
-  // Fallback to load local recommendations if everything else fails
-  Future<void> _loadLocalRecommendationsFallback() async {
-    try {
-      final favoriteGenres = _getFavoriteGenres();
-      final recommendations = await _aiService.getLocalRecommendations(
-        favoriteGenres: favoriteGenres,
-      );
-      
-      setState(() {
-        _recommendations = recommendations;
-        _usingLocalRecommendations = true;
-        _error = null; // Clear any previous errors
-      });
-    } catch (e) {
-      debugPrint('Error loading local recommendations fallback: $e');
-      // Keep the existing error state
     }
   }
 
   List<String> _getFavoriteGenres() {
-    // Simple logic to extract favorite genres
+    // Extract favorite genres based on user's reading history
     final allBooks = [
       ...widget.bookData.finishedBooks,
       ...widget.bookData.currentlyReadingBooks,
@@ -130,7 +109,7 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
       return ['fiction', 'non-fiction']; // Default genres
     }
     
-    // Since there's no direct genre information, use a simple keyword matching approach
+    // Using a more sophisticated genre detection approach
     final Map<String, int> genreCounts = {
       'fiction': 0,
       'non-fiction': 0,
@@ -141,31 +120,66 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
       'history': 0,
       'romance': 0,
       'thriller': 0,
+      'young adult': 0,
+      'self-help': 0,
+      'business': 0,
+      'science': 0,
+      'philosophy': 0,
+      'poetry': 0,
     };
     
-    // Simple keyword matching for genre identification
+    // Enhanced keyword matching for genre identification
     for (final book in allBooks) {
       final titleLower = book.title.toLowerCase();
       final authorLower = book.author.toLowerCase();
       
-      // This is a simple heuristic approach - not perfect but gives some variety
+      // Mystery/Crime
       if (titleLower.contains('murder') || titleLower.contains('detective') || 
-          titleLower.contains('crime')) {
+          titleLower.contains('crime') || titleLower.contains('mystery') ||
+          authorLower.contains('christie') || authorLower.contains('doyle')) {
         genreCounts['mystery'] = (genreCounts['mystery'] ?? 0) + 1;
-      } else if (titleLower.contains('space') || titleLower.contains('planet') ||
-                 authorLower.contains('asimov') || authorLower.contains('clarke')) {
+      } 
+      // Science Fiction
+      else if (titleLower.contains('space') || titleLower.contains('planet') ||
+               titleLower.contains('robot') || titleLower.contains('alien') ||
+               authorLower.contains('asimov') || authorLower.contains('clarke') ||
+               authorLower.contains('heinlein')) {
         genreCounts['sci-fi'] = (genreCounts['sci-fi'] ?? 0) + 1;
-      } else if (titleLower.contains('dragon') || titleLower.contains('magic') ||
-                 authorLower.contains('tolkien') || authorLower.contains('rowling')) {
+      } 
+      // Fantasy
+      else if (titleLower.contains('dragon') || titleLower.contains('magic') ||
+               titleLower.contains('sword') || titleLower.contains('wizard') ||
+               authorLower.contains('tolkien') || authorLower.contains('rowling') ||
+               authorLower.contains('martin')) {
         genreCounts['fantasy'] = (genreCounts['fantasy'] ?? 0) + 1;
-      } else if (titleLower.contains('life of') || titleLower.contains('memoir')) {
+      } 
+      // Biography/Memoir
+      else if (titleLower.contains('life of') || titleLower.contains('memoir') ||
+               titleLower.contains('autobiography') || titleLower.contains('biography')) {
         genreCounts['biography'] = (genreCounts['biography'] ?? 0) + 1;
-      } else if (titleLower.contains('history') || titleLower.contains('war')) {
+      } 
+      // History
+      else if (titleLower.contains('history') || titleLower.contains('war') ||
+               titleLower.contains('century') || titleLower.contains('revolution')) {
         genreCounts['history'] = (genreCounts['history'] ?? 0) + 1;
-      } else if (titleLower.contains('love') || titleLower.contains('romance')) {
+      } 
+      // Romance
+      else if (titleLower.contains('love') || titleLower.contains('romance') ||
+               titleLower.contains('heart') || authorLower.contains('sparks')) {
         genreCounts['romance'] = (genreCounts['romance'] ?? 0) + 1;
-      } else {
-        // Default to fiction as fallback
+      }
+      // Business
+      else if (titleLower.contains('business') || titleLower.contains('entrepreneur') ||
+               titleLower.contains('leadership') || titleLower.contains('management')) {
+        genreCounts['business'] = (genreCounts['business'] ?? 0) + 1;
+      }
+      // Self-help
+      else if (titleLower.contains('habit') || titleLower.contains('self') ||
+               titleLower.contains('improve') || titleLower.contains('happiness')) {
+        genreCounts['self-help'] = (genreCounts['self-help'] ?? 0) + 1;
+      }
+      // Default to fiction as fallback for unidentified genres
+      else {
         genreCounts['fiction'] = (genreCounts['fiction'] ?? 0) + 1;
       }
     }
@@ -174,7 +188,9 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
     final sortedGenres = genreCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     
+    // Return top genres (with at least 1 match)
     return sortedGenres
+        .where((e) => e.value > 0)
         .take(3)
         .map((e) => e.key)
         .toList();
@@ -197,13 +213,13 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Recommended for you',
+                'AI Book Recommendations',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (_error == null)
+              if (_error == null || widget.bookData.allBooks.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.refresh),
                   onPressed: _isLoading ? null : _loadRecommendations,
@@ -237,16 +253,15 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
               Icon(Icons.lightbulb_outline, size: 40, color: Colors.amber[700]),
               const SizedBox(height: 8),
               Text(
-                _aiService.isConfigured
-                    ? 'Could not load recommendations'
-                    : 'AI recommendations require an API key',
+                _error!,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[700]),
               ),
-              TextButton(
-                onPressed: _loadLocalRecommendationsFallback,
-                child: const Text('Show default recommendations'),
-              ),
+              if (widget.bookData.allBooks.isNotEmpty)
+                TextButton(
+                  onPressed: _loadRecommendations,
+                  child: const Text('Try again'),
+                ),
             ],
           ),
         ),
@@ -265,33 +280,16 @@ class _RecommendationsSectionState extends State<RecommendationsSection> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_usingLocalRecommendations)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
-              'Using default recommendations',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-        SizedBox(
-          height: 120,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _recommendations.length,
-            itemBuilder: (context, index) {
-              final recommendation = _recommendations[index];
-              return _buildRecommendationCard(recommendation);
-            },
-          ),
-        ),
-      ],
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _recommendations.length,
+        itemBuilder: (context, index) {
+          final recommendation = _recommendations[index];
+          return _buildRecommendationCard(recommendation);
+        },
+      ),
     );
   }
 
