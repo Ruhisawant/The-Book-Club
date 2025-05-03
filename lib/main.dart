@@ -9,10 +9,10 @@ bool isEnvLoaded = false;
 
 void testEnvVariables() {
   final googleApiKey = dotenv.env['GOOGLE_BOOKS_API_KEY'];
-  final geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+  final cohereApiKey = dotenv.env['COHERE_API_KEY'];
   
   debugPrint('Google Books API Key available: ${googleApiKey != null && googleApiKey.isNotEmpty}');
-  debugPrint('Gemini API Key available: ${geminiApiKey != null && geminiApiKey.isNotEmpty}');
+  debugPrint('Cohere API Key available: ${cohereApiKey != null && cohereApiKey.isNotEmpty}');
 }
 
 void main() async {
@@ -29,8 +29,8 @@ void main() async {
     
     // Set defaults manually to avoid "NotInitializedError"
     dotenv.testLoad(fileInput: '''
-      GEMINI_API_KEY=
-      GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1
+      COHERE_API_KEY=
+      COHERE_BASE_URL=https://api.cohere.ai
     ''');
   }
   

@@ -6,8 +6,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../main.dart' show isEnvLoaded;
 
 class AiService {
-  late final String _openAIBaseUrl;
-  late final String _openAIApiKey;
+  late final String _cohereBaseUrl;
+  late final String _cohereApiKey;
   late final bool _isConfigured;
   
   // Track API quota/rate limit issues
@@ -33,24 +33,24 @@ class AiService {
     try {
       // Check if environment was loaded properly
       if (isEnvLoaded) {
-        _openAIApiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
-        _openAIBaseUrl = dotenv.env['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1';
+        _cohereApiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+        _cohereBaseUrl = dotenv.env['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1';
       } else {
         // Default to empty values if environment isn't loaded
-        _openAIApiKey = '';
-        _openAIBaseUrl = 'https://api.openai.com/v1';
+        _cohereApiKey = '';
+        _cohereBaseUrl = 'https://api.openai.com/v1';
         debugPrint('Using default AI service configuration (no API key)');
       }
           
-      _isConfigured = _openAIApiKey.isNotEmpty;
+      _isConfigured = _cohereApiKey.isNotEmpty;
       
       if (!_isConfigured) {
         debugPrint('Warning: OpenAI API key not found or empty. AI recommendations will be disabled.');
       }
     } catch (e) {
       debugPrint('Error initializing AI service: $e');
-      _openAIApiKey = '';
-      _openAIBaseUrl = 'https://api.openai.com/v1';
+      _cohereApiKey = '';
+      _cohereBaseUrl = 'https://api.openai.com/v1';
       _isConfigured = false;
     }
   }
@@ -71,15 +71,15 @@ class AiService {
     }
     
     try {
-      if (!_isConfigured || _openAIApiKey.isEmpty) {
+      if (!_isConfigured || _cohereApiKey.isEmpty) {
         throw Exception('OpenAI API key not configured');
       }
       
       // Move this to a separate method to improve readability
-      final request = http.Request('POST', Uri.parse('$_openAIBaseUrl/chat/completions'))
+      final request = http.Request('POST', Uri.parse('$_cohereBaseUrl/chat/completions'))
         ..headers.addAll({
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_openAIApiKey',
+          'Authorization': 'Bearer $_cohereApiKey',
         })
         ..body = jsonEncode({
           'model': 'gpt-3.5-turbo',
