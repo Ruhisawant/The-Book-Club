@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/book_data.dart';
+import '../models/book_service.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -194,6 +194,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Book Library'),
       ),
       body: RefreshIndicator(

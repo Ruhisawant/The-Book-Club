@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/login_screen.dart';
 import 'models/book_details.dart';
 import 'navigation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  try {
+    await dotenv.load(fileName: '.env');
+    debugPrint('Environment variables loaded successfully');
+  } catch (e) {
+    debugPrint('Error loading environment variables: $e');
+  }
   
+  await Firebase.initializeApp();
   runApp(const BookClubApp());
 }
 

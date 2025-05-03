@@ -325,9 +325,8 @@ class ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
-        centerTitle: true,
-        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: const Text('Profile Settings'),
       ),
       body: SingleChildScrollView(
         child: Container(

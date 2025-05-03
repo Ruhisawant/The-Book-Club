@@ -106,8 +106,8 @@ ReadingStatus getStatusFromString(String status) {
 
 // Book Data
 class BookData {
-  static const String _apiKey = 'AIzaSyCBUlM1xETefpbuj8GyuISrFlGa9m1QWbY';
-  static const String _baseUrl = 'https://www.googleapis.com/books/v1/volumes';
+  static const String _googleApiKey = 'AIzaSyCBUlM1xETefpbuj8GyuISrFlGa9m1QWbY';
+  static const String _googleBaseUrl = 'https://www.googleapis.com/books/v1/volumes';
   
   static final BookData _instance = BookData._internal();
   factory BookData() => _instance;
@@ -162,7 +162,7 @@ class BookData {
     
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl?q=$query&maxResults=10&key=$_apiKey')
+        Uri.parse('$_googleBaseUrl?q=$query&maxResults=10&key=$_googleApiKey')
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () => throw Exception('Request timed out'),
