@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/login_screen.dart';
-import 'models/book_details.dart';
+import 'widgets/book_details.dart';
 import 'navigation.dart';
 
 bool isEnvLoaded = false;
@@ -42,10 +42,6 @@ class BookClubApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Book App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreen(),
