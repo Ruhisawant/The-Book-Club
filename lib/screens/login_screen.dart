@@ -41,7 +41,7 @@ class LoginScreenState extends State<LoginScreen> {
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userInformation.user!.uid)
-            .set({'email': email, 'genrePreference': genreSelect});
+            .set({'email': email, 'favoriteBookGenres': [genreSelect]});
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Account Made!')));
           setState(() {
