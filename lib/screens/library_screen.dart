@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/book_service.dart';
+import '../services/book_service.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});

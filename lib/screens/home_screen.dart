@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/book_service.dart';
-import '../widgets/ai_recommendations.dart';
+import '../services/book_service.dart';
+import '../models/ai_recommendations.dart';
 import '../navigation.dart';
 
 class HomeScreen extends StatefulWidget {

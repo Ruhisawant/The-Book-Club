@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/book_service.dart';
-import '../models/ai_service.dart';
+import '../services/book_service.dart';
+import '../services/ai_service.dart';
 
 class RecommendationsSection extends StatefulWidget {
   final BookData bookData;

@@ -83,8 +83,8 @@ class DiscussionPost {
         created: DateTime.now().subtract(const Duration(hours: 3)),
         likes: 24,
         comments: 3,
-        tags: ['Science Fiction', 'Andy Weir', 'Project Hail Mary'],
-        commentsList: sampleComments,
+        tags: ['Science Fiction', 'Fiction', 'Romance'],
+        commentsList: List.from(sampleComments),
       ),
       DiscussionPost(
         id: '2',
