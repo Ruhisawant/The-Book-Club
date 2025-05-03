@@ -5,14 +5,33 @@ import 'screens/login_screen.dart';
 import 'models/book_details.dart';
 import 'navigation.dart';
 
+bool isEnvLoaded = false;
+
+void testEnvVariables() {
+  final googleApiKey = dotenv.env['GOOGLE_BOOKS_API_KEY'];
+  final geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+  
+  debugPrint('Google Books API Key available: ${googleApiKey != null && googleApiKey.isNotEmpty}');
+  debugPrint('Gemini API Key available: ${geminiApiKey != null && geminiApiKey.isNotEmpty}');
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  
+  // Initialize dotenv with defaults
   try {
     await dotenv.load(fileName: '.env');
     debugPrint('Environment variables loaded successfully');
+    isEnvLoaded = true;
   } catch (e) {
     debugPrint('Error loading environment variables: $e');
+    // Don't set isEnvLoaded to true
+    
+    // Set defaults manually to avoid "NotInitializedError"
+    dotenv.testLoad(fileInput: '''
+      GEMINI_API_KEY=
+      GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1
+    ''');
   }
   
   await Firebase.initializeApp();
@@ -31,7 +50,7 @@ class BookClubApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/',
+      initialRoute: '/home',
       routes: {
         '/': (context) => const LoginScreen(),
         '/home': (context) => const Navigation(currentIndex: 0),

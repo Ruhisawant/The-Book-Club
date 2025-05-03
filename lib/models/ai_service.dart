@@ -3,13 +3,24 @@ import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../main.dart' show isEnvLoaded;
+
 class AiService {
   late final String _openAIBaseUrl;
   late final String _openAIApiKey;
   late final bool _isConfigured;
   
+  // Track API quota/rate limit issues
+  bool _hasQuotaExceeded = false;
+  
+  // Add a client with proper timeout
+  final http.Client _client = http.Client();
+  
+  // Add request cancellation support
+  bool _isRequestCancelled = false;
+  
   // Getter for configuration status
-  bool get isConfigured => _isConfigured;
+  bool get isConfigured => _isConfigured && !_hasQuotaExceeded;
   
   // Singleton pattern
   static final AiService _instance = AiService._internal();
@@ -20,13 +31,21 @@ class AiService {
   
   AiService._internal() {
     try {
-      _openAIApiKey = (dotenv.env['OPENAI_API_KEY'] ?? '');
-      _openAIBaseUrl = (dotenv.env['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1');
+      // Check if environment was loaded properly
+      if (isEnvLoaded) {
+        _openAIApiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+        _openAIBaseUrl = dotenv.env['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1';
+      } else {
+        // Default to empty values if environment isn't loaded
+        _openAIApiKey = '';
+        _openAIBaseUrl = 'https://api.openai.com/v1';
+        debugPrint('Using default AI service configuration (no API key)');
+      }
           
       _isConfigured = _openAIApiKey.isNotEmpty;
       
       if (!_isConfigured) {
-        debugPrint('Warning: OpenAI API key not found in environment variables');
+        debugPrint('Warning: OpenAI API key not found or empty. AI recommendations will be disabled.');
       }
     } catch (e) {
       debugPrint('Error initializing AI service: $e');
@@ -42,18 +61,27 @@ class AiService {
     required List<String> readBooks,
     int count = 5,
   }) async {
+    // Reset cancellation flag
+    _isRequestCancelled = false;
+    
+    // If we've already hit quota limits, go straight to fallback
+    if (_hasQuotaExceeded) {
+      debugPrint('Using local recommendations due to previous quota issues');
+      return getLocalRecommendations(favoriteGenres: favoriteGenres);
+    }
+    
     try {
       if (!_isConfigured || _openAIApiKey.isEmpty) {
         throw Exception('OpenAI API key not configured');
       }
       
-      final response = await http.post(
-        Uri.parse('$_openAIBaseUrl/chat/completions'),
-        headers: {
+      // Move this to a separate method to improve readability
+      final request = http.Request('POST', Uri.parse('$_openAIBaseUrl/chat/completions'))
+        ..headers.addAll({
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_openAIApiKey',
-        },
-        body: jsonEncode({
+        })
+        ..body = jsonEncode({
           'model': 'gpt-3.5-turbo',
           'messages': [
             {
@@ -68,8 +96,29 @@ class AiService {
           'temperature': 0.7,
           'max_tokens': 800,
           'response_format': {'type': 'json_object'},
-        }),
+        });
+      
+      // Use a stream response to handle timeouts better
+      final streamedResponse = await _client.send(request).timeout(
+        const Duration(seconds: 15), // Increased timeout slightly
+        onTimeout: () => throw TimeoutException('Request timed out'),
       );
+      
+      // Check if request was cancelled during execution
+      if (_isRequestCancelled) {
+        return getLocalRecommendations(favoriteGenres: favoriteGenres);
+      }
+
+      final response = await http.Response.fromStream(streamedResponse);
+
+      // Check for rate limiting or quota issues
+      if (response.statusCode == 429) {
+        debugPrint('OpenAI API quota exceeded or rate limited');
+        // Set the flag so we don't keep trying
+        _hasQuotaExceeded = true;
+        // Use local recommendations instead
+        return getLocalRecommendations(favoriteGenres: favoriteGenres);
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -90,9 +139,13 @@ class AiService {
         debugPrint('Failed to generate recommendations: ${response.statusCode} - ${response.body}');
         throw Exception('Failed to generate recommendations: ${response.statusCode}');
       }
+    } on TimeoutException {
+      debugPrint('Request timed out, using local recommendations');
+      return getLocalRecommendations(favoriteGenres: favoriteGenres);
     } catch (e) {
       debugPrint('Error generating recommendations: $e');
-      throw Exception('Error generating recommendations: $e');
+      // If we hit any error, fall back to local recommendations
+      return getLocalRecommendations(favoriteGenres: favoriteGenres);
     }
   }
 
@@ -149,10 +202,123 @@ class AiService {
     return recommendations;
   }
 
-  // Method to cancel ongoing requests if needed
-  void dispose() {
-    // Add cleanup code if needed
+  // Generate fallback recommendations when API is not available
+  Future<List<BookRecommendation>> getLocalRecommendations({
+    required List<String> favoriteGenres,
+  }) async {
+    // Create some static recommendations based on popular books
+    final allRecommendations = [
+      BookRecommendation(
+        title: "Project Hail Mary",
+        author: "Andy Weir",
+        genre: "Science Fiction",
+        why: "A thrilling science fiction adventure with problem-solving and humor",
+      ),
+      BookRecommendation(
+        title: "Atomic Habits",
+        author: "James Clear",
+        genre: "Self-Help",
+        why: "Practical strategies for building good habits and breaking bad ones",
+      ),
+      BookRecommendation(
+        title: "The Midnight Library",
+        author: "Matt Haig",
+        genre: "Fiction",
+        why: "A thought-provoking story about the choices that shape our lives",
+      ),
+      BookRecommendation(
+        title: "The Thursday Murder Club",
+        author: "Richard Osman",
+        genre: "Mystery",
+        why: "A charming murder mystery with witty characters and clever plot twists",
+      ),
+      BookRecommendation(
+        title: "Educated",
+        author: "Tara Westover",
+        genre: "Memoir",
+        why: "A powerful memoir about the struggle for self-invention",
+      ),
+      BookRecommendation(
+        title: "Dune",
+        author: "Frank Herbert",
+        genre: "Science Fiction",
+        why: "A classic of science fiction with complex world-building",
+      ),
+      BookRecommendation(
+        title: "The Silent Patient",
+        author: "Alex Michaelides",
+        genre: "Thriller",
+        why: "A psychological thriller with a shocking twist",
+      ),
+      BookRecommendation(
+        title: "A Gentleman in Moscow",
+        author: "Amor Towles",
+        genre: "Historical Fiction",
+        why: "A beautifully written story of a man confined to a luxury hotel",
+      ),
+      BookRecommendation(
+        title: "The Vanishing Half",
+        author: "Brit Bennett",
+        genre: "Literary Fiction",
+        why: "A thought-provoking exploration of race, identity, and sisterhood",
+      ),
+      BookRecommendation(
+        title: "Where the Crawdads Sing",
+        author: "Delia Owens",
+        genre: "Mystery",
+        why: "A beautiful story combining nature, mystery, and coming-of-age",
+      ),
+    ];
+    
+    // Filter and sort recommendations based on user's favorite genres
+    final filteredBooks = allRecommendations.where((book) {
+      final genreLower = book.genre.toLowerCase();
+      return favoriteGenres.isEmpty || 
+             favoriteGenres.any((genre) => 
+                genreLower.contains(genre.toLowerCase()));
+    }).toList();
+    
+    // If we have matching recommendations, return those first
+    final result = [...filteredBooks];
+    
+    // Add remaining books if we don't have enough recommendations
+    if (result.length < 5) {
+      final remainingBooks = allRecommendations
+          .where((book) => !result.contains(book))
+          .take(5 - result.length)
+          .toList();
+      result.addAll(remainingBooks);
+    }
+    
+    // Take only the top 5
+    return result.take(5).toList();
   }
+  
+  // Reset quota exceeded flag for testing
+  void resetQuotaFlag() {
+    _hasQuotaExceeded = false;
+  }
+  
+  // Cancel ongoing requests
+  void cancelRequest() {
+    _isRequestCancelled = true;
+  }
+  
+  // Method to cancel ongoing requests and clean up resources
+  void dispose() {
+    cancelRequest();
+    _client.close();
+  }
+}
+
+// Custom Exception
+class TimeoutException implements Exception {
+  final String message;
+  
+  TimeoutException(this.message);
+  
+  @override
+  String toString() => message;
 }
 
 // Model class for book recommendations
